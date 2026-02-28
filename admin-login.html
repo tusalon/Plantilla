@@ -37,7 +37,7 @@
                 <label class="block text-sm font-medium text-amber-400 mb-2">Usuario</label>
                 <input type="text" id="username" required
                        class="w-full px-4 py-3 rounded-lg border border-gray-600 bg-gray-700 text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
-                       placeholder="usuario-del-negocio">
+                       placeholder="bennetsalon">
             </div>
             
             <div>
@@ -74,6 +74,11 @@
             mensaje.classList.remove('hidden');
             
             try {
+                // Verificar que bcrypt está disponible
+                if (typeof bcrypt === 'undefined') {
+                    throw new Error('bcrypt no está cargado');
+                }
+
                 const response = await fetch(
                     `${window.SUPABASE_URL}/rest/v1/negocios?slug=eq.${username}&select=*`,
                     {
@@ -84,7 +89,9 @@
                     }
                 );
                 
-                if (!response.ok) throw new Error('Error en la consulta');
+                if (!response.ok) {
+                    throw new Error('Error en la consulta');
+                }
                 
                 const negocios = await response.json();
                 
@@ -124,14 +131,16 @@
                 localStorage.setItem('adminLoginTime', Date.now());
                 
                 if (!negocio.configurado) {
+                    console.log('🔄 Primera vez, redirigiendo al wizard');
                     window.location.href = 'setup-wizard.html';
                 } else {
+                    console.log('➡️ Negocio ya configurado, yendo al panel');
                     window.location.href = 'admin.html';
                 }
                 
             } catch (error) {
                 console.error('❌ Error:', error);
-                errorMsg.textContent = 'Error al conectar. Intentá de nuevo.';
+                errorMsg.textContent = error.message || 'Error al conectar. Intentá de nuevo.';
                 errorMsg.classList.remove('hidden');
                 mensaje.classList.add('hidden');
             }

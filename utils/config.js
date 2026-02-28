@@ -73,7 +73,7 @@ async function cargarHorariosBarberos() {
     try {
         console.log('🌐 Cargando horarios de barberos desde Supabase...');
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/horarios_barberos?select=*`,
+            `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -200,7 +200,7 @@ window.salonConfig = {
     getHorariosPorDia: async function(barberoId) {
         try {
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/horarios_barberos?barbero_id=eq.${barberoId}&select=*`,
+                `${window.SUPABASE_URL}/rest/v1/?barbero_id=eq.${barberoId}&select=*`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -224,7 +224,7 @@ window.salonConfig = {
             console.log(`💾 Guardando horarios por día para barbero ${barberoId}:`, horariosPorDia);
             
             const checkResponse = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/horarios_barberos?barbero_id=eq.${barberoId}&select=id,horas,dias`,
+                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?barbero_id=eq.${barberoId}&select=id,horas,dias`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -250,7 +250,7 @@ window.salonConfig = {
             
             if (existe && existe.length > 0) {
                 console.log('🔄 Actualizando registro existente ID:', existe[0].id);
-                url = `${window.SUPABASE_URL}/rest/v1/horarios_barberos?id=eq.${existe[0].id}`;
+                url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?id=eq.${existe[0].id}`;
                 method = 'PATCH';
                 body = JSON.stringify({
                     horarios_por_dia: horariosPorDia,
@@ -259,7 +259,7 @@ window.salonConfig = {
                 });
             } else {
                 console.log('➕ Insertando nuevo registro');
-                url = `${window.SUPABASE_URL}/rest/v1/horarios_barberos`;
+                url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales`;
                 method = 'POST';
                 body = JSON.stringify({
                     barbero_id: barberoId,
@@ -313,7 +313,7 @@ window.salonConfig = {
     getHorariosBarbero: async function(barberoId) {
         try {
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/horarios_barberos?barbero_id=eq.${barberoId}&select=*`,
+                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?barbero_id=eq.${barberoId}&select=*`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -347,7 +347,7 @@ window.salonConfig = {
             console.log(`💾 Guardando horarios para barbero ${barberoId} (formato antiguo):`, horarios);
             
             const checkResponse = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/horarios_barberos?barbero_id=eq.${barberoId}&select=id`,
+                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?barbero_id=eq.${barberoId}&select=id`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -365,7 +365,7 @@ window.salonConfig = {
             
             if (existe && existe.length > 0) {
                 console.log('🔄 Actualizando registro existente ID:', existe[0].id);
-                url = `${window.SUPABASE_URL}/rest/v1/horarios_barberos?id=eq.${existe[0].id}`;
+                url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?id=eq.${existe[0].id}`;
                 method = 'PATCH';
                 body = JSON.stringify({
                     horas: horarios.horas || [],
@@ -373,7 +373,7 @@ window.salonConfig = {
                 });
             } else {
                 console.log('➕ Insertando nuevo registro');
-                url = `${window.SUPABASE_URL}/rest/v1/horarios_barberos`;
+                url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales`;
                 method = 'POST';
                 body = JSON.stringify({
                     barbero_id: barberoId,

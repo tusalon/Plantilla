@@ -581,4 +581,4 @@ window.eliminarClienteAutorizado = async function(whatsapp) {
     }
 };
 
-console.log('✅ auth-clientes inicializado (modo Supabase)');
+console.log('✅ auth-clients inicializado (modo Supabase)');

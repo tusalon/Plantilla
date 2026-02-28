@@ -3,8 +3,8 @@
 console.log('👥 profesionales.js cargado');
 
 let profesionalesCache = [];
-let ultimaActualizacion = 0;
-const CACHE_DURATION = 5 * 60 * 1000;
+let ultimaActualizacionProfesionales = 0; // 👈 NOMBRE ÚNICO
+const CACHE_DURATION_PROFESIONALES = 5 * 60 * 1000; // 👈 NOMBRE ÚNICO
 
 async function cargarProfesionalesDesdeDB() {
     try {
@@ -23,7 +23,7 @@ async function cargarProfesionalesDesdeDB() {
         
         const data = await response.json();
         profesionalesCache = data;
-        ultimaActualizacion = Date.now();
+        ultimaActualizacionProfesionales = Date.now(); // 👈 ACTUALIZADO
         return data;
     } catch (error) {
         console.error('Error cargando profesionales:', error);
@@ -33,7 +33,8 @@ async function cargarProfesionalesDesdeDB() {
 
 window.salonProfesionales = {
     getAll: async function(activos = true) {
-        if (Date.now() - ultimaActualizacion < CACHE_DURATION && profesionalesCache.length > 0) {
+        // 👈 USAR LAS NUEVAS VARIABLES
+        if (Date.now() - ultimaActualizacionProfesionales < CACHE_DURATION_PROFESIONALES && profesionalesCache.length > 0) {
             if (activos) {
                 return profesionalesCache.filter(p => p.activo === true);
             }

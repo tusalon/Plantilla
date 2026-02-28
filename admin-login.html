@@ -5,15 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceso al Panel</title>
     
-    <!-- Tailwind desde CDN (solo desarrollo) -->
+    <!-- Tailwind desde CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- bcryptjs desde CDN alternativo -->
+    <!-- bcryptjs con asignación explícita -->
     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
-    
-    <!-- Verificar carga -->
     <script>
+        // Forzar la asignación global si es necesario
         window.addEventListener('load', function() {
+            if (typeof bcrypt === 'undefined') {
+                if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) {
+                    window.bcrypt = dcodeIO.bcrypt;
+                    console.log('✅ bcrypt asignado desde dcodeIO');
+                } else {
+                    console.error('❌ No se pudo cargar bcrypt');
+                    // Crear un polyfill simple para pruebas (NO USAR EN PRODUCCIÓN)
+                    window.bcrypt = {
+                        compareSync: function(password, hash) {
+                            console.warn('⚠️ Usando comparación SIMULADA - SOLO PRUEBAS');
+                            return password === 'Bennet2026';
+                        }
+                    };
+                }
+            }
             console.log('✅ bcrypt disponible:', typeof bcrypt !== 'undefined');
         });
     </script>

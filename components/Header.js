@@ -1,19 +1,25 @@
-// components/Header.js - Con botón de volver atrás
+// components/Header.js
 
 function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackButton }) {
     const [mostrarOpcionesAdmin, setMostrarOpcionesAdmin] = React.useState(false);
-    
+    const [nombreNegocio, setNombreNegocio] = React.useState('Mi Salón');
+
+    React.useEffect(() => {
+        window.getNombreNegocio().then(nombre => {
+            setNombreNegocio(nombre);
+        });
+    }, []);
+
     const goToAdmin = () => {
         const isAdmin = localStorage.getItem('adminAuth') === 'true';
-        const barberoAuth = localStorage.getItem('barberoAuth');
+        const profesionalAuth = localStorage.getItem('profesionalAuth');
         
-        if (isAdmin || barberoAuth) {
+        if (isAdmin || profesionalAuth) {
             window.location.href = 'admin.html';
         }
-        // Ya no hay fallback a admin-login.html porque no existe
     };
 
-    const tieneAcceso = userRol === 'admin' || userRol === 'barbero';
+    const tieneAcceso = userRol === 'admin' || userRol === 'profesional';
 
     return (
         <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -30,9 +36,9 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                     )}
                     
                     <div className="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center text-white">
-                        <i className="icon-scissors text-lg"></i>
+                        <i className="icon-calendar text-lg"></i>
                     </div>
-                    <h1 className="text-xl font-bold text-gray-800">LAG.barberia</h1>
+                    <h1 className="text-xl font-bold text-gray-800">{nombreNegocio}</h1>
                 </div>
                 
                 <div className="flex items-center gap-3">
@@ -79,7 +85,7 @@ function Header({ cliente, onLogout, onMisReservas, onGoBack, userRol, showBackB
                                         </div>
                                     ) : (
                                         <div className="space-y-1">
-                                            <p className="font-semibold text-amber-400">✂️ Acceso como barbero</p>
+                                            <p className="font-semibold text-amber-400">✂️ Acceso como profesional</p>
                                             <p className="text-gray-400">Bienvenido, {cliente?.nombre}</p>
                                             <p className="text-gray-500 text-xs">Puede ver tus reservas</p>
                                         </div>

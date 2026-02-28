@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Rservas.Roma</title>
+    <title>Acceso al Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
     <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
@@ -23,7 +23,7 @@
         <div class="text-center mb-8">
             <div class="flex justify-center mb-4">
                 <div class="w-20 h-20 bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl shadow-xl flex items-center justify-center">
-                    <i class="icon-scissors text-4xl text-white"></i>
+                    <i class="icon-calendar text-4xl text-white"></i>
                 </div>
             </div>
             <h1 class="text-3xl font-bold text-white">Acceso al Panel</h1>
@@ -37,7 +37,7 @@
                 <label class="block text-sm font-medium text-amber-400 mb-2">Usuario</label>
                 <input type="text" id="username" required
                        class="w-full px-4 py-3 rounded-lg border border-gray-600 bg-gray-700 text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
-                       placeholder="bennetsalon">
+                       placeholder="usuario-del-negocio">
             </div>
             
             <div>
@@ -74,7 +74,6 @@
             mensaje.classList.remove('hidden');
             
             try {
-                // Buscar el negocio por slug
                 const response = await fetch(
                     `${window.SUPABASE_URL}/rest/v1/negocios?slug=eq.${username}&select=*`,
                     {
@@ -85,9 +84,7 @@
                     }
                 );
                 
-                if (!response.ok) {
-                    throw new Error('Error en la consulta');
-                }
+                if (!response.ok) throw new Error('Error en la consulta');
                 
                 const negocios = await response.json();
                 
@@ -100,7 +97,7 @@
                 
                 const negocio = negocios[0];
                 
-                // 🔐 VERIFICAR CONTRASEÑA CON BCRYPT
+                // Verificar contraseña con bcrypt
                 try {
                     const passwordValida = bcrypt.compareSync(password, negocio.password_hash);
                     
@@ -120,19 +117,15 @@
                 
                 console.log('✅ Login exitoso:', negocio.nombre);
                 
-                // Guardar datos de sesión
                 localStorage.setItem('negocioId', negocio.id);
                 localStorage.setItem('negocioSlug', negocio.slug);
                 localStorage.setItem('negocioNombre', negocio.nombre);
                 localStorage.setItem('adminAuth', 'true');
                 localStorage.setItem('adminLoginTime', Date.now());
                 
-                // Verificar si el negocio ya está configurado
                 if (!negocio.configurado) {
-                    console.log('🔄 Primera vez, redirigiendo al wizard');
                     window.location.href = 'setup-wizard.html';
                 } else {
-                    console.log('➡️ Negocio ya configurado, yendo al panel');
                     window.location.href = 'admin.html';
                 }
                 

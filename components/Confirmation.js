@@ -1,12 +1,27 @@
-// components/Confirmation.js - CON WHATSAPP + PUSH PARA RESERVAS (CORREGIDO)
+// components/Confirmation.js
 
 function Confirmation({ booking, onReset }) {
+    const [telefonoDuenno, setTelefonoDuenno] = React.useState('53357234');
+    const [nombreNegocio, setNombreNegocio] = React.useState('');
+    const [ntfyTopic, setNtfyTopic] = React.useState('reservas');
+
+    React.useEffect(() => {
+        const cargarDatos = async () => {
+            const tel = await window.getTelefonoDuenno();
+            const nombre = await window.getNombreNegocio();
+            const topic = await window.getNtfyTopic();
+            setTelefonoDuenno(tel);
+            setNombreNegocio(nombre);
+            setNtfyTopic(topic);
+        };
+        cargarDatos();
+    }, []);
+
     if (!booking) {
         console.error('❌ booking no definido');
         return null;
     }
 
-    // 🔥 FUNCIÓN PARA ENVIAR WHATSAPP AL DUEÑO - CORREGIDA PARA IPHONE
     const enviarWhatsAppDuenno = () => {
         try {
             const fechaConDia = window.formatFechaCompleta ? 
@@ -14,27 +29,23 @@ function Confirmation({ booking, onReset }) {
                 booking.fecha;
             
             const horaFormateada = formatTo12Hour(booking.hora_inicio);
-            const barbero = booking.barbero_nombre || booking.trabajador_nombre || 'No asignado';
+            const profesional = booking.profesional_nombre || booking.trabajador_nombre || 'No asignado';
             
             const mensaje = 
-`🆕 *NUEVA RESERVA - LAG.barberia*
+`🆕 *NUEVA RESERVA*
 
 👤 *Cliente:* ${booking.cliente_nombre}
 📱 *WhatsApp:* ${booking.cliente_whatsapp}
 💈 *Servicio:* ${booking.servicio} (${booking.duracion} min)
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${horaFormateada}
-👨‍🎨 *Barbero:* ${barbero}
+👨‍🎨 *Profesional:* ${profesional}
 
 ✅ Reserva confirmada automáticamente.`;
 
-            const adminPhone = "53357234";
-            
-            // ✅ CORREGIDO: Usar método que funciona en iPhone
-            const telefonoLimpio = adminPhone.replace(/\D/g, '');
+            const telefonoLimpio = telefonoDuenno.replace(/\D/g, '');
             const encodedText = encodeURIComponent(mensaje);
             
-            // Crear link invisible (funciona en iPhone)
             const link = document.createElement('a');
             link.href = `https://api.whatsapp.com/send?phone=${telefonoLimpio}&text=${encodedText}`;
             link.target = '_blank';
@@ -43,7 +54,6 @@ function Confirmation({ booking, onReset }) {
             document.body.appendChild(link);
             link.click();
             
-            // Limpiar después
             setTimeout(() => {
                 document.body.removeChild(link);
             }, 200);
@@ -54,7 +64,6 @@ function Confirmation({ booking, onReset }) {
         }
     };
 
-    // 🔥 FUNCIÓN PARA ENVIAR NOTIFICACIÓN PUSH
     const enviarPushDuenno = () => {
         try {
             const fechaConDia = window.formatFechaCompleta ? 
@@ -62,9 +71,8 @@ function Confirmation({ booking, onReset }) {
                 booking.fecha;
             
             const horaFormateada = formatTo12Hour(booking.hora_inicio);
-            const barbero = booking.barbero_nombre || booking.trabajador_nombre || 'No asignado';
+            const profesional = booking.profesional_nombre || booking.trabajador_nombre || 'No asignado';
             
-            // Mensaje sin emojis para ntfy
             const mensajePush = 
 `NUEVA RESERVA
 
@@ -73,15 +81,13 @@ WhatsApp: ${booking.cliente_whatsapp}
 Servicio: ${booking.servicio} (${booking.duracion} min)
 Fecha: ${fechaConDia}
 Hora: ${horaFormateada}
-Barbero: ${barbero}
+Profesional: ${profesional}
 
 Reserva confirmada automáticamente.`;
 
-            // Título sin emojis
-            const tituloPush = 'Nueva reserva - LAG.barberia';
+            const tituloPush = `Nueva reserva - ${nombreNegocio}`;
 
-            // Enviar a ntfy.sh
-            fetch('https://ntfy.sh/lag-barberia', {
+            fetch(`https://ntfy.sh/${ntfyTopic}`, {
                 method: 'POST',
                 body: mensajePush,
                 headers: {
@@ -93,8 +99,6 @@ Reserva confirmada automáticamente.`;
             .then(response => {
                 if (response.ok) {
                     console.log('✅ Notificación push enviada a ntfy');
-                } else {
-                    console.error('❌ Error en respuesta ntfy:', response.status);
                 }
             })
             .catch(error => {
@@ -106,22 +110,16 @@ Reserva confirmada automáticamente.`;
         }
     };
 
-    // 🔥 ENVIAR AMBAS NOTIFICACIONES AUTOMÁTICAMENTE
     React.useEffect(() => {
         const timer = setTimeout(() => {
             console.log('📤 Enviando notificaciones al dueño...');
-            
-            // Enviar WhatsApp
             enviarWhatsAppDuenno();
-            
-            // Enviar Push
             enviarPushDuenno();
-            
             console.log('✅ Ambas notificaciones enviadas: WhatsApp + Push');
-        }, 1500); // 1.5 segundos después de mostrar la confirmación
+        }, 1500);
         
         return () => clearTimeout(timer);
-    }, []); // Solo se ejecuta una vez al montar el componente
+    }, []);
 
     const fechaConDia = window.formatFechaCompleta ? 
         window.formatFechaCompleta(booking.fecha) : 
@@ -136,7 +134,6 @@ Reserva confirmada automáticamente.`;
             <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Turno Reservado!</h2>
             <p className="text-gray-500 mb-6 max-w-xs mx-auto">Tu cita ha sido agendada correctamente</p>
 
-            {/* Detalles del turno */}
             <div className="bg-gray-800 p-6 rounded-2xl shadow-sm border border-amber-600 w-full max-w-sm mb-6 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
                 <div className="space-y-4 text-left">
@@ -168,13 +165,12 @@ Reserva confirmada automáticamente.`;
                     </div>
                     
                     <div>
-                        <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Barbero</div>
-                        <div className="font-medium text-amber-400">{booking.barbero_nombre || booking.trabajador_nombre || 'No asignado'}</div>
+                        <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Profesional</div>
+                        <div className="font-medium text-amber-400">{booking.profesional_nombre || booking.trabajador_nombre || 'No asignado'}</div>
                     </div>
                 </div>
             </div>
 
-            {/* Mensaje de confirmación de AMBAS notificaciones */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 max-w-sm w-full">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white text-xl">
@@ -187,19 +183,18 @@ Reserva confirmada automáticamente.`;
                 </div>
             </div>
 
-            {/* Botón para nueva reserva */}
             <div className="flex flex-col gap-3 w-full max-w-xs">
                 <button 
                     onClick={onReset}
                     className="w-full bg-amber-600 text-white py-4 rounded-xl font-bold hover:bg-amber-700 transition-colors flex items-center justify-center gap-2 text-lg"
                 >
-                    <span>✂️</span>
+                    <span>📅</span>
                     Reservar otro turno
                 </button>
                 
                 <div className="text-sm text-gray-400 bg-gray-800 p-4 rounded-lg flex items-center justify-center gap-2 border border-amber-700">
                    <i className="icon-smartphone text-amber-500 text-xl"></i>
-                   <span>Contacto: +53 53357234</span>
+                   <span>Contacto: +{telefonoDuenno}</span>
                 </div>
             </div>
         </div>

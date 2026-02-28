@@ -1,19 +1,21 @@
-// sw.js - Service Worker para LAG.barberia (VERSIÓN CORREGIDA)
+// sw.js - Service Worker
 
-const CACHE_NAME = 'lag-barberia-v1'; // ⚠️ CAMBIA ESTO CUANDO HAYA ACTUALIZACIONES
+const CACHE_NAME = 'reservas-v1';
 const urlsToCache = [
-  '/LAG-barberia/',
-  '/LAG-barberia/index.html',
-  '/LAG-barberia/admin.html',
-  '/LAG-barberia/manifest.json',
-  '/LAG-barberia/icons/icon-72x72.png',
-  '/LAG-barberia/icons/icon-96x96.png',
-  '/LAG-barberia/icons/icon-128x128.png',
-  '/LAG-barberia/icons/icon-144x144.png',
-  '/LAG-barberia/icons/icon-152x152.png',
-  '/LAG-barberia/icons/icon-192x192.png',
-  '/LAG-barberia/icons/icon-384x384.png',
-  '/LAG-barberia/icons/icon-512x512.png'
+  '/',
+  '/index.html',
+  '/admin.html',
+  '/admin-login.html',
+  '/setup-wizard.html',
+  '/manifest.json',
+  '/icons/icon-72x72.png',
+  '/icons/icon-96x96.png',
+  '/icons/icon-128x128.png',
+  '/icons/icon-144x144.png',
+  '/icons/icon-152x152.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-384x384.png',
+  '/icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -21,10 +23,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('✅ Cache creado:', CACHE_NAME);
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache))
   );
 });
 
@@ -40,9 +39,7 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => {
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
@@ -54,31 +51,18 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(networkResponse => {
-        if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
+        if (networkResponse?.status === 200 && event.request.method === 'GET') {
           const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
-          });
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
         }
         return networkResponse;
       })
-      .catch(() => {
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
   );
 });
 
 self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  if (event.data && event.data.type === 'CLEAR_CACHE') {
-    caches.keys().then(cacheNames => {
-      cacheNames.forEach(cacheName => {
-        caches.delete(cacheName);
-      });
-    });
-  }
 });
-
-console.log('✅ Service Worker de LAG.barberia configurado');

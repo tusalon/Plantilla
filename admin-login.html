@@ -4,8 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceso al Panel</title>
+    
+    <!-- Tailwind desde CDN (solo desarrollo) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+    
+    <!-- bcryptjs desde CDN alternativo -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+    
+    <!-- Verificar carga -->
+    <script>
+        window.addEventListener('load', function() {
+            console.log('✅ bcrypt disponible:', typeof bcrypt !== 'undefined');
+        });
+    </script>
+    
     <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
     <style>
         @keyframes fadeIn {

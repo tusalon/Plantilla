@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Rservas.Roma</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-amber-900 min-h-screen flex items-center justify-center p-4">
+    
+    <!-- 🔥 REDIRECCIÓN AUTOMÁTICA SI YA HAY SESIÓN -->
+    <script>
+        (function() {
+            const isAdmin = localStorage.getItem('adminAuth') === 'true';
+            const barberoAuth = localStorage.getItem('barberoAuth');
+            
+            if (isAdmin || barberoAuth) {
+                console.log('🔐 Sesión activa detectada, redirigiendo a admin.html');
+                window.location.replace('admin.html');
+            }
+        })();
+    </script>
+
+    <div class="bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-8 animate-fade-in border border-amber-700">
+        <div class="text-center mb-8">
+            <!-- LOGO COMO ICONO -->
+            <div class="flex justify-center mb-4">
+                <div class="w-20 h-20 bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl shadow-xl flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                    <i class="icon-scissors text-4xl text-white"></i>
+                </div>
+            </div>
+            
+            <h1 class="text-3xl font-bold text-white">Acceso al Panel</h1>
+            <p class="text-amber-400">Ingresá con tu usuario</p>
+        </div>
+        
+        <div id="mensaje" class="mb-4 text-sm text-center hidden"></div>
+        
+        <form id="loginForm" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-amber-400 mb-2">Usuario</label>
+                <input type="text" id="username" required
+                       class="w-full px-4 py-3 rounded-lg border border-gray-600 bg-gray-700 text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+                       placeholder="bennetsalon">
+                <p class="text-xs text-gray-400 mt-1">Ingresá el nombre de usuario de tu negocio</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-amber-400 mb-2">Contraseña</label>
+                <input type="password" id="password" required
+                       class="w-full px-4 py-3 rounded-lg border border-gray-600 bg-gray-700 text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+                       placeholder="••••••••">
+            </div>
+            
+            <button type="submit" 
+                    class="w-full bg-gradient-to-r from-amber-600 to-amber-700 text-white py-3 rounded-lg font-semibold hover:from-amber-700 hover:to-amber-800 transition transform hover:scale-105">
+                Entrar
+            </button>
+        </form>
+        
+        <div id="errorMsg" class="mt-4 text-red-500 text-sm text-center hidden"></div>
+    </div>
+
+    <!-- Scripts con rutas relativas -->
+    <script type="text/javascript" src="utils/supabase-config.js"></script>
+    <script type="text/javascript" src="utils/storage.js"></script>
+    <script type="text/javascript" src="utils/config-negocio.js"></script>
+
+    <script type="text/javascript">
+        console.log('🔍 VERIFICACIÓN INICIAL LOGIN:');
+        console.log('  SUPABASE_URL:', window.SUPABASE_URL);
+        
+        if (!window.SUPABASE_URL) {
+            console.error('❌ ERROR CRÍTICO: SUPABASE_URL no está definida');
+        }
+    </script>
+
+    <script type="text/javascript" src="utils/api.js"></script>
+    <script type="text/javascript" src="utils/timeLogic.js"></script>
+    <script type="text/javascript" src="utils/auth-clients.js"></script>
+    <script type="text/javascript" src="utils/auth-barberos.js"></script>
+    <script type="text/javascript" src="utils/config.js"></script>
+    <script type="text/javascript" src="utils/servicios.js"></script>
+    <script type="text/javascript" src="utils/barberos.js"></script>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim().toLowerCase();
+            const password = document.getElementById('password').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            const mensaje = document.getElementById('mensaje');
+            
+            errorMsg.classList.add('hidden');
+            mensaje.classList.add('hidden');
+            
+            mensaje.textContent = 'Verificando...';
+            mensaje.classList.remove('hidden');
+            mensaje.classList.add('text-amber-400', 'bg-gray-700', 'p-2', 'rounded-lg');
+            
+            try {
+                console.log('🔐 Buscando negocio con slug:', username);
+                
+                // Buscar el negocio por slug
+                const response = await fetch(
+                    `${window.SUPABASE_URL}/rest/v1/negocios?slug=eq.${username}&select=*`,
+                    {
+                        headers: {
+                            'apikey': window.SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`
+                        }
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error('Error en la consulta');
+                }
+                
+                const negocios = await response.json();
+                
+                if (!negocios || negocios.length === 0) {
+                    errorMsg.textContent = 'Usuario no encontrado';
+                    errorMsg.classList.remove('hidden');
+                    mensaje.classList.add('hidden');
+                    return;
+                }
+                
+                const negocio = negocios[0];
+                console.log('✅ Negocio encontrado:', negocio.nombre);
+                
+                // Verificar contraseña (usando bcrypt en el cliente - necesitamos bcryptjs)
+                // Por ahora, para pruebas, usamos comparación directa con la contraseña de BennetSalón
+                // 🔥 IMPORTANTE: En producción usar bcrypt
+                
+                // SIMULACIÓN TEMPORAL - SOLO PARA PRUEBAS
+                if (password !== 'Bennet2026') {
+                    errorMsg.textContent = 'Contraseña incorrecta';
+                    errorMsg.classList.remove('hidden');
+                    mensaje.classList.add('hidden');
+                    return;
+                }
+                
+                console.log('✅ Login exitoso');
+                
+                // Guardar datos de sesión
+                localStorage.setItem('negocioId', negocio.id);
+                localStorage.setItem('negocioSlug', negocio.slug);
+                localStorage.setItem('negocioNombre', negocio.nombre);
+                localStorage.setItem('adminAuth', 'true');
+                localStorage.setItem('adminUser', negocio.nombre);
+                localStorage.setItem('adminLoginTime', Date.now());
+                
+                // Verificar si el negocio ya está configurado
+                if (!negocio.configurado) {
+                    console.log('🔄 Primera vez, redirigiendo al wizard');
+                    window.location.href = 'setup-wizard.html';
+                } else {
+                    console.log('➡️ Negocio ya configurado, yendo al panel');
+                    window.location.href = 'admin.html';
+                }
+                
+            } catch (error) {
+                console.error('❌ Error en login:', error);
+                errorMsg.textContent = 'Error al conectar. Intentá de nuevo.';
+                errorMsg.classList.remove('hidden');
+                mensaje.classList.add('hidden');
+            }
+        });
+
+        // Verificación de carga
+        setTimeout(() => {
+            console.log('🔍 VERIFICACIÓN FINAL:');
+            console.log('  SUPABASE_URL:', window.SUPABASE_URL);
+            console.log('  config-negocio:', typeof window.cargarConfiguracionNegocio);
+        }, 1000);
+    </script>
+</body>
+</html>

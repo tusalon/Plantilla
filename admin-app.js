@@ -970,40 +970,59 @@ El administrador cancelo la reserva.`;
         <div className="min-h-screen bg-gray-100 p-3 sm:p-6">
             <div className="max-w-6xl mx-auto space-y-4">
                 
-               {/* ===== HEADER MEJORADO ===== */}
-<div className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+               // En admin-app.js, modificar el HEADER para que tenga colores femeninos
+
+{/* ===== HEADER CON ESTILO FEMENINO ===== */}
+<div className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-pink-500">
     {/* Título y logo */}
     <div className="flex items-center gap-3">
         <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform">
-            <i className="icon-scissors text-2xl text-white"></i>
+            <span className="text-2xl text-white">💅</span>
         </div>
         <div>
-            <h1 className="text-xl font-bold text-gray-800">BennetSalón</h1>
-            <p className="text-xs text-gray-500">Panel de Administración</p>
+            <h1 className="text-xl font-bold text-pink-800">{nombreNegocio}</h1>
+            <p className="text-xs text-pink-500">Panel de Administración</p>
         </div>
     </div>
 
     {/* Botones de acción */}
     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-        {/* Botón Editar Negocio (destacado) */}
         <button
             onClick={() => window.location.href = 'editar-negocio.html'}
-            className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-amber-400 flex-1 sm:flex-none justify-center"
-            title="Editar configuración del negocio"
+            className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center"
         >
-            <i className="icon-building text-lg"></i>
+            <span className="text-lg">💖</span>
             <span className="font-medium">Editar Negocio</span>
         </button>
 
-        {/* Botón Actualizar */}
         <button 
-            onClick={fetchBookings} 
-            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-all hover:scale-105 border border-gray-200"
-            title="Actualizar datos"
+            onClick={() => {
+                cargarConfiguracion();
+                setConfigVersion(prev => prev + 1);
+            }} 
+            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
+            title="Recargar datos"
         >
-            <i className="icon-refresh-cw text-gray-600"></i>
+            <i className="icon-refresh-cw text-pink-600"></i>
         </button>
 
+        <button 
+            onClick={fetchBookings} 
+            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
+            title="Actualizar reservas"
+        >
+            <i className="icon-refresh-cw text-pink-600"></i>
+        </button>
+
+        <button 
+            onClick={handleLogout}
+            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
+            title="Cerrar sesión"
+        >
+            <i className="icon-log-out text-pink-600"></i>
+        </button>
+    </div>
+</div>
         {/* Botón Cerrar Sesión */}
         <button 
             onClick={handleLogout}

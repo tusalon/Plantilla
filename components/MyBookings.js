@@ -1,4 +1,4 @@
-// components/MyBookings.js - Pantalla de reservas del cliente (VERSIÓN GENÉRICA)
+// components/MyBookings.js - Versión femenina
 
 function MyBookings({ cliente, onVolver }) {
     const [bookings, setBookings] = React.useState([]);
@@ -114,17 +114,17 @@ function MyBookings({ cliente, onVolver }) {
                 window.formatFechaCompleta(bookingData.fecha) : 
                 bookingData.fecha;
             
-            const profesional = bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignado';
+            const profesional = bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignada';
             
             const mensaje = 
 `❌ *CANCELACIÓN DE CLIENTE - ${nombreNegocio}*
 
 👤 *Cliente:* ${bookingData.cliente_nombre}
 📱 *WhatsApp:* ${bookingData.cliente_whatsapp}
-💈 *Servicio:* ${bookingData.servicio}
+💅 *Servicio:* ${bookingData.servicio}
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${formatTo12Hour(bookingData.hora_inicio)}
-👨‍🎨 *Profesional:* ${profesional}
+👩‍🎨 *Profesional:* ${profesional}
 
 El cliente canceló su turno desde la app.`;
 
@@ -156,7 +156,7 @@ El cliente canceló su turno desde la app.`;
                 window.formatFechaCompleta(bookingData.fecha) : 
                 bookingData.fecha;
             
-            const profesional = bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignado';
+            const profesional = bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignada';
             
             const mensajePush = 
 `CANCELACION DE CLIENTE
@@ -201,7 +201,7 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
             window.formatFechaCompleta(bookingData.fecha) : 
             bookingData.fecha;
         
-        if (!confirm(`¿Estás seguro que querés cancelar tu turno del ${fechaConDiaConfirm} a las ${formatTo12Hour(bookingData.hora_inicio)}?`)) {
+        if (!confirm(`¿Estás segura que querés cancelar tu turno del ${fechaConDiaConfirm} a las ${formatTo12Hour(bookingData.hora_inicio)}?`)) {
             return;
         }
         
@@ -251,18 +251,18 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
     const canceladasCount = bookings.filter(b => b.estado === 'Cancelado').length;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-100 pb-20">
             {/* Header */}
-            <div className="bg-white shadow-sm sticky top-0 z-10">
+            <div className="bg-white/90 backdrop-blur-sm shadow-sm sticky top-0 z-10 border-b border-pink-200">
                 <div className="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
                     <button
                         onClick={onVolver}
-                        className="flex items-center gap-2 text-gray-600 hover:text-amber-600 transition"
+                        className="flex items-center gap-2 text-pink-600 hover:text-pink-800 transition"
                     >
                         <i className="icon-arrow-left text-xl"></i>
                         <span className="font-medium">Volver</span>
                     </button>
-                    <h1 className="text-xl font-bold text-gray-800">Mis Reservas</h1>
+                    <h1 className="text-xl font-bold text-pink-800">✨ Mis Reservas ✨</h1>
                     <div className="w-20"></div>
                 </div>
             </div>
@@ -271,21 +271,21 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
             <div className="max-w-3xl mx-auto px-4 py-6">
                 
                 {/* Info del cliente */}
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <div className="bg-white/80 backdrop-blur-sm border border-pink-200 rounded-lg p-4 mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center text-white font-bold">
+                        <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">
                             {cliente.nombre.charAt(0)}
                         </div>
                         <div>
-                            <p className="font-medium text-gray-800">{cliente.nombre}</p>
-                            <p className="text-sm text-gray-500">{cliente.whatsapp}</p>
+                            <p className="font-medium text-pink-800">{cliente.nombre}</p>
+                            <p className="text-sm text-pink-600">{cliente.whatsapp}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Mensaje de error si hay */}
                 {mensajeError && (
-                    <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg mb-4 text-sm">
+                    <div className="bg-pink-100 border border-pink-300 text-pink-700 p-3 rounded-lg mb-4 text-sm">
                         {mensajeError}
                     </div>
                 )}
@@ -297,8 +297,8 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
                         className={`
                             px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap
                             ${filtro === 'activas' 
-                                ? 'bg-green-600 text-white shadow-md' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}
+                                ? 'bg-pink-500 text-white shadow-md' 
+                                : 'bg-pink-100 text-pink-700 hover:bg-pink-200'}
                         `}
                     >
                         Activas ({activasCount})
@@ -308,8 +308,8 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
                         className={`
                             px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap
                             ${filtro === 'canceladas' 
-                                ? 'bg-red-600 text-white shadow-md' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}
+                                ? 'bg-pink-500 text-white shadow-md' 
+                                : 'bg-pink-100 text-pink-700 hover:bg-pink-200'}
                         `}
                     >
                         Canceladas ({canceladasCount})
@@ -319,8 +319,8 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
                         className={`
                             px-4 py-2 rounded-full text-sm font-medium transition whitespace-nowrap
                             ${filtro === 'todas' 
-                                ? 'bg-amber-600 text-white shadow-md' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}
+                                ? 'bg-pink-500 text-white shadow-md' 
+                                : 'bg-pink-100 text-pink-700 hover:bg-pink-200'}
                         `}
                     >
                         Todas ({bookings.length})
@@ -330,16 +330,16 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
                 {/* Listado de reservas */}
                 {loading ? (
                     <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>
-                        <p className="text-gray-500 mt-4">Cargando tus reservas...</p>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+                        <p className="text-pink-500 mt-4">Cargando tus reservas...</p>
                     </div>
                 ) : reservasFiltradas.length === 0 ? (
-                    <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-                        <div className="text-6xl mb-4">📅</div>
-                        <p className="text-gray-500 mb-2">No tenés reservas {filtro !== 'todas' ? filtro : ''}</p>
+                    <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-pink-200">
+                        <div className="text-6xl mb-4">📅✨</div>
+                        <p className="text-pink-600 mb-2">No tenés reservas {filtro !== 'todas' ? filtro : ''}</p>
                         <button
                             onClick={onVolver}
-                            className="text-amber-600 font-medium hover:underline"
+                            className="text-pink-500 font-medium hover:underline"
                         >
                             Reservar un turno
                         </button>
@@ -355,47 +355,47 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
                                 window.formatFechaCompleta(booking.fecha) : 
                                 booking.fecha;
                             
-                            const profesional = booking.profesional_nombre || booking.trabajador_nombre || 'No asignado';
+                            const profesional = booking.profesional_nombre || booking.trabajador_nombre || 'No asignada';
                             
                             return (
                                 <div
                                     key={booking.id}
                                     className={`
-                                        bg-white rounded-xl shadow-sm border-l-4 overflow-hidden
+                                        bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border-l-4 overflow-hidden border border-pink-200
                                         ${booking.estado === 'Cancelado' 
-                                            ? 'border-l-red-500 opacity-70' 
-                                            : 'border-l-amber-500'}
+                                            ? 'border-l-pink-400 opacity-70' 
+                                            : 'border-l-pink-500'}
                                     `}
                                 >
                                     <div className="p-4">
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
-                                                <span className="text-sm text-amber-600 font-medium block mb-1">
+                                                <span className="text-sm text-pink-600 font-medium block mb-1">
                                                     {fechaConDia}
                                                 </span>
-                                                <h3 className="font-bold text-lg">{booking.servicio}</h3>
+                                                <h3 className="font-bold text-pink-800 text-lg">{booking.servicio}</h3>
                                             </div>
                                             <span className={`
                                                 px-3 py-1 rounded-full text-xs font-semibold
-                                                ${booking.estado === 'Reservado' ? 'bg-green-100 text-green-700' :
-                                                  booking.estado === 'Confirmado' ? 'bg-blue-100 text-blue-700' :
-                                                  'bg-red-100 text-red-700'}
+                                                ${booking.estado === 'Reservado' ? 'bg-pink-100 text-pink-700' :
+                                                  booking.estado === 'Confirmado' ? 'bg-pink-200 text-pink-800' :
+                                                  'bg-pink-100 text-pink-500'}
                                             `}>
                                                 {booking.estado}
                                             </span>
                                         </div>
                                         
                                         <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                                            <div className="flex items-center gap-2 text-gray-600">
-                                                <i className="icon-clock text-amber-500"></i>
+                                            <div className="flex items-center gap-2 text-pink-600">
+                                                <span className="text-pink-400">⏰</span>
                                                 <span>{formatTo12Hour(booking.hora_inicio)}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-gray-600">
-                                                <i className="icon-scissors text-amber-500"></i>
+                                            <div className="flex items-center gap-2 text-pink-600">
+                                                <span className="text-pink-400">⏱️</span>
                                                 <span>{booking.duracion} min</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-gray-600 col-span-2">
-                                                <i className="icon-user text-amber-500"></i>
+                                            <div className="flex items-center gap-2 text-pink-600 col-span-2">
+                                                <span className="text-pink-400">👩‍🎨</span>
                                                 <span>Profesional: {profesional}</span>
                                             </div>
                                         </div>
@@ -404,10 +404,10 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
                                             <div className={`
                                                 text-xs p-2 rounded-lg mb-3 flex items-center gap-2
                                                 ${puedeCancelarBooking 
-                                                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                                                    : 'bg-yellow-50 text-yellow-700 border border-yellow-200'}
+                                                    ? 'bg-pink-50 text-pink-700 border border-pink-200' 
+                                                    : 'bg-pink-100 text-pink-700 border border-pink-300'}
                                             `}>
-                                                <i className={puedeCancelarBooking ? 'icon-info' : 'icon-alert-triangle'}></i>
+                                                <span className={puedeCancelarBooking ? '💡' : '⚠️'}></span>
                                                 <span>{tiempoRestante}</span>
                                             </div>
                                         )}
@@ -419,20 +419,20 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
                                                 className={`
                                                     w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2
                                                     ${puedeCancelarBooking
-                                                        ? 'bg-red-50 hover:bg-red-100 text-red-600'
-                                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
+                                                        ? 'bg-pink-100 hover:bg-pink-200 text-pink-700'
+                                                        : 'bg-pink-50 text-pink-400 cursor-not-allowed'}
                                                     disabled:opacity-50 disabled:cursor-not-allowed
                                                 `}
                                                 title={!puedeCancelarBooking ? "Solo se puede cancelar con al menos 1 hora de anticipación" : ""}
                                             >
                                                 {cancelando ? (
                                                     <>
-                                                        <div className="animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full"></div>
+                                                        <div className="animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full"></div>
                                                         Cancelando...
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <i className="icon-x-circle"></i>
+                                                        <span>❌</span>
                                                         {puedeCancelarBooking 
                                                             ? 'Cancelar turno' 
                                                             : 'No se puede cancelar (menos de 1h)'}

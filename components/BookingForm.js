@@ -1,4 +1,4 @@
-// components/BookingForm.js - Versión genérica
+// components/BookingForm.js - Versión femenina
 
 function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cliente }) {
     const [submitting, setSubmitting] = React.useState(false);
@@ -11,7 +11,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
 
         try {
             // Verificar disponibilidad actualizada
-            const bookings = await getBookingsByDateAndWorker(date, profesional.id);
+            const bookings = await getBookingsByDateAndProfesional(date, profesional.id);
             const baseSlots = [time];
             const available = filterAvailableSlots(baseSlots, service.duracion, bookings);
 
@@ -50,47 +50,55 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-xl space-y-6">
-                <div className="flex justify-between items-center border-b border-gray-100 pb-4">
-                    <h3 className="text-xl font-bold text-gray-900">Confirmar Reserva</h3>
-                    <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+            <div className="bg-white/95 backdrop-blur-md w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-xl space-y-6 border-2 border-pink-300">
+                <div className="flex justify-between items-center border-b border-pink-200 pb-4">
+                    <h3 className="text-xl font-bold text-pink-800 flex items-center gap-2">
+                        <span>💖</span>
+                        Confirmar Reserva
+                    </h3>
+                    <button onClick={onCancel} className="text-pink-400 hover:text-pink-600">
                         <i className="icon-x text-2xl"></i>
                     </button>
                 </div>
 
                 <div className="space-y-4">
                     {/* Resumen del turno */}
-                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-2">
-                        <div className="flex items-center gap-3 text-gray-700">
-                            <i className="icon-scissors text-amber-500"></i>
+                    <div className="bg-gradient-to-r from-pink-50 to-pink-100 p-4 rounded-xl border border-pink-200 space-y-2">
+                        <div className="flex items-center gap-3 text-pink-700">
+                            <span className="text-2xl">
+                                {service.nombre.toLowerCase().includes('corte') ? '✂️' : 
+                                 service.nombre.toLowerCase().includes('uña') ? '💅' :
+                                 service.nombre.toLowerCase().includes('peinado') ? '💇‍♀️' :
+                                 service.nombre.toLowerCase().includes('maquillaje') ? '💄' : '✨'}
+                            </span>
                             <span className="font-medium">{service.nombre}</span>
                         </div>
                         
-                        <div className="flex items-center gap-3 text-gray-700">
-                            <i className="icon-users text-amber-500"></i>
+                        <div className="flex items-center gap-3 text-pink-700">
+                            <span className="text-2xl">👩‍🎨</span>
                             <span>Con: <strong>{profesional.nombre}</strong></span>
                         </div>
                         
-                        <div className="flex items-center gap-3 text-gray-700">
-                            <i className="icon-calendar text-amber-500"></i>
+                        <div className="flex items-center gap-3 text-pink-700">
+                            <span className="text-2xl">📅</span>
                             <span>{date}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-gray-700">
-                            <i className="icon-clock text-amber-500"></i>
+                        <div className="flex items-center gap-3 text-pink-700">
+                            <span className="text-2xl">⏰</span>
                             <span>{formatTo12Hour(time)} ({service.duracion} min)</span>
                         </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                            <p className="text-sm text-gray-600">
+                        <div className="bg-pink-50 p-3 rounded-lg border border-pink-200">
+                            <p className="text-sm text-pink-700">
                                 <span className="font-semibold">Tus datos:</span> {cliente.nombre} - +{cliente.whatsapp}
                             </p>
                         </div>
 
                         {error && (
-                            <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg flex items-start gap-2">
-                                <i className="icon-triangle-alert mt-0.5"></i>
+                            <div className="text-pink-600 text-sm bg-pink-100 p-3 rounded-lg flex items-start gap-2 border border-pink-300">
+                                <span className="text-pink-500">⚠️</span>
                                 {error}
                             </div>
                         )}
@@ -98,7 +106,7 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="w-full bg-gradient-to-r from-amber-600 to-amber-700 text-white py-3.5 rounded-xl font-bold hover:from-amber-700 hover:to-amber-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                            className="w-full bg-gradient-to-r from-pink-500 to-pink-600 text-white py-3.5 rounded-xl font-bold hover:from-pink-600 hover:to-pink-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg"
                         >
                             {submitting ? (
                                 <>
@@ -106,7 +114,11 @@ function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cli
                                     Procesando...
                                 </>
                             ) : (
-                                "Confirmar Reserva"
+                                <>
+                                    <span>💖</span>
+                                    Confirmar Reserva
+                                    <span>✨</span>
+                                </>
                             )}
                         </button>
                     </form>

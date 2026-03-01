@@ -1,4 +1,4 @@
-// admin-app.js - LAG.barberia (VERSIÓN COMPLETA CON FUNCIONES ASYNC CORREGIDAS)
+// admin-app.js - VERSIÓN COMPLETA CON FUNCIONES ASYNC CORREGIDAS Y BOTÓN EDITAR NEGOCIO
 
 // 🔥 CONFIGURACIÓN SUPABASE
 const SUPABASE_URL = 'https://torwzztbyeryptydytwr.supabase.co';
@@ -247,6 +247,18 @@ function AdminApp() {
     const filteredBookings = getFilteredBookings();
 
     // ============================================
+    // FUNCIÓN AUXILIAR PARA FORMATO DE HORA
+    // ============================================
+    const formatTo12Hour = (timeStr) => {
+        if (!timeStr) return '';
+        const [hours, minutes] = timeStr.split(':');
+        const h = parseInt(hours);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12}:${minutes} ${ampm}`;
+    };
+
+    // ============================================
     // RENDER (JSX)
     // ============================================
     return (
@@ -255,8 +267,18 @@ function AdminApp() {
                 
                 {/* ===== HEADER ===== */}
                 <div className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center">
-                    <h1 className="text-xl font-bold">Panel Admin - LAG.barberia</h1>
+                    <h1 className="text-xl font-bold">Panel Admin - BennetSalón</h1>
                     <div className="flex gap-2">
+                        {/* NUEVO BOTÓN: Editar Negocio */}
+                        <button
+                            onClick={() => window.location.href = 'editar-negocio.html'}
+                            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition transform hover:scale-105 shadow-md"
+                            title="Editar configuración del negocio"
+                        >
+                            <i className="icon-building"></i>
+                            <span className="hidden sm:inline">Editar Negocio</span>
+                        </button>
+                        
                         <button 
                             onClick={fetchBookings} 
                             className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"

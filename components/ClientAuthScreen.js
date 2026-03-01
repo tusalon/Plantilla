@@ -1,6 +1,8 @@
-// components/ClientAuthScreen.js - Versión genérica
+// components/ClientAuthScreen.js - Versión con datos dinámicos
 
 function ClientAuthScreen({ onAccessGranted, onGoBack }) {
+    const [config, setConfig] = React.useState(null);
+    const [cargando, setCargando] = React.useState(true);
     const [nombre, setNombre] = React.useState('');
     const [whatsapp, setWhatsapp] = React.useState('');
     const [solicitudEnviada, setSolicitudEnviada] = React.useState(false);
@@ -12,25 +14,29 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
     const [esProfesional, setEsProfesional] = React.useState(false);
     const [profesionalInfo, setProfesionalInfo] = React.useState(null);
     const [esAdmin, setEsAdmin] = React.useState(false);
-    const [imagenCargada, setImagenCargada] = React.useState(false);
-    const [nombreNegocio, setNombreNegocio] = React.useState('');
-    const [telefonoDuenno, setTelefonoDuenno] = React.useState('');
 
     React.useEffect(() => {
         const cargarDatos = async () => {
-            const nombre = await window.getNombreNegocio();
-            const tel = await window.getTelefonoDuenno();
-            setNombreNegocio(nombre);
-            setTelefonoDuenno(tel);
+            const configData = await window.cargarConfiguracionNegocio();
+            setConfig(configData);
+            setCargando(false);
         };
         cargarDatos();
     }, []);
 
-    // Cargar imagen de fondo (opcional - se puede configurar después)
-    React.useEffect(() => {
-        // Por ahora usamos un gradiente
-        setImagenCargada(true);
-    }, []);
+    if (cargando) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+            </div>
+        );
+    }
+
+    const colorPrimario = config?.color_primario || '#c49b63';
+    const colorSecundario = config?.color_secundario || '#f59e0b';
+    const nombreNegocio = config?.nombre || 'Mi Salón';
+    const telefonoDuenno = config?.telefono || '53357234';
+    const logoUrl = config?.logo_url;
 
     const verificarNumero = async (numero) => {
         if (numero.length < 8) {
@@ -50,9 +56,8 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
         const numeroCompleto = `53${numeroLimpio}`;
         
         try {
-            // Verificar si es ADMIN (dueño) - por teléfono
-            const adminPhone = await window.getTelefonoDuenno();
-            if (numeroLimpio === adminPhone.replace(/\D/g, '')) {
+            // Verificar si es ADMIN (dueño)
+            if (numeroLimpio === telefonoDuenno.replace(/\D/g, '')) {
                 setEsAdmin(true);
                 setEsProfesional(false);
                 setProfesionalInfo(null);
@@ -89,7 +94,6 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
             } else {
                 setClienteAutorizado(null);
                 
-                // Verificar si tiene solicitud pendiente
                 if (window.obtenerEstadoSolicitud) {
                     const estado = await window.obtenerEstadoSolicitud(numeroCompleto);
                     
@@ -153,7 +157,6 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
             if (agregado) {
                 setSolicitudEnviada(true);
                 setError('');
-                
                 console.log('✅ Solicitud enviada');
             }
         } catch (err) {
@@ -174,40 +177,45 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
 
     if (solicitudEnviada) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-900 to-amber-900 flex flex-col items-center justify-center p-6 animate-fade-in">
-                <div className="w-24 h-24 bg-green-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl">
-                    <div className="icon-check text-5xl text-white"></div>
+            <div 
+                className="min-h-screen flex flex-col items-center justify-center p-6 animate-fade-in"
+                style={{
+                    background: `linear-gradient(135deg, ${colorPrimario} 0%, ${colorSecundario} 100%)`
+                }}
+            >
+                <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-6 mx-auto shadow-2xl">
+                    <i className="icon-check text-5xl text-white"></i>
                 </div>
                 
                 <h2 className="text-2xl font-bold text-white mb-3 text-center">¡Solicitud Enviada!</h2>
                 
-                <div className="bg-black/60 backdrop-blur-md p-6 rounded-2xl shadow-2xl max-w-md mb-6 border border-amber-500/30 w-full">
-                    <p className="text-gray-200 mb-4 text-center">
-                        Gracias por querer ser parte de <span className="font-bold text-amber-400">{nombreNegocio}</span>
+                <div className="bg-black/40 backdrop-blur-md p-6 rounded-2xl shadow-2xl max-w-md mb-6 border border-white/20 w-full">
+                    <p className="text-white mb-4 text-center">
+                        Gracias por querer ser parte de <span className="font-bold">{nombreNegocio}</span>
                     </p>
                     
-                    <div className="bg-black/40 p-4 rounded-xl text-left space-y-2 mb-4 border border-amber-500/20">
-                        <p className="text-sm text-gray-300">
-                            <span className="font-semibold text-amber-400">📱 Tu número:</span> +{whatsapp}
+                    <div className="bg-black/40 p-4 rounded-xl text-left space-y-2 mb-4 border border-white/10">
+                        <p className="text-sm text-white/80">
+                            <span className="font-semibold text-white">📱 Tu número:</span> +{whatsapp}
                         </p>
-                        <p className="text-sm text-gray-300">
-                            <span className="font-semibold text-amber-400">👤 Nombre:</span> {nombre}
+                        <p className="text-sm text-white/80">
+                            <span className="font-semibold text-white">👤 Nombre:</span> {nombre}
                         </p>
                     </div>
                     
-                    <p className="text-gray-300 text-sm text-center">
+                    <p className="text-white/80 text-sm text-center">
                         El administrador revisará tu solicitud y te contactará por WhatsApp.
                     </p>
                 </div>
                 
-                <div className="text-sm text-gray-400 text-center">
+                <div className="text-sm text-white/60 text-center">
                     <p>Mientras tanto, puede contactarnos:</p>
                     <a 
                         href={`https://api.whatsapp.com/send?phone=${telefonoDuenno}&text=Hola%20${nombreNegocio}%2C%20consulté%20mi%20solicitud%20de%20acceso`} 
                         target="_blank" 
-                        className="text-amber-400 font-medium inline-flex items-center gap-1 mt-2 hover:text-amber-300 transition-colors"
+                        className="text-white font-medium inline-flex items-center gap-1 mt-2 hover:text-white/80 transition-colors"
                     >
-                        <div className="icon-message-circle"></div>
+                        <i className="icon-message-circle"></i>
                         +{telefonoDuenno}
                     </a>
                 </div>
@@ -216,44 +224,60 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 to-amber-900 flex items-center justify-center p-4">
+        <div 
+            className="min-h-screen flex items-center justify-center p-4"
+            style={{
+                background: `linear-gradient(135deg, ${colorPrimario} 0%, ${colorSecundario} 100%)`
+            }}
+        >
             <div className="max-w-md w-full mx-auto">
-                <div className="bg-black/60 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-amber-500/30">
+                <div className="bg-black/40 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/20">
+                    {/* Logo */}
                     <div className="text-center mb-6">
-                        <h1 className="text-3xl font-bold text-white">{nombreNegocio}</h1>
-                        <p className="text-amber-400 mt-2">Acceso para clientes</p>
+                        {logoUrl ? (
+                            <img 
+                                src={logoUrl} 
+                                alt={nombreNegocio} 
+                                className="w-20 h-20 object-contain mx-auto rounded-xl"
+                            />
+                        ) : (
+                            <div 
+                                className="w-20 h-20 rounded-xl mx-auto flex items-center justify-center"
+                                style={{ backgroundColor: colorPrimario }}
+                            >
+                                <i className="icon-calendar text-3xl text-white"></i>
+                            </div>
+                        )}
+                        <h1 className="text-3xl font-bold text-white mt-4">{nombreNegocio}</h1>
+                        <p className="text-white/80 mt-1">Acceso para clientes</p>
                     </div>
 
-                    <h2 className="text-lg font-semibold text-amber-400 mb-4 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                         <i className="icon-user-plus"></i>
                         Ingresá con tu número
                     </h2>
                     
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-white/80 mb-1">
                                 Tu nombre completo
                             </label>
                             <input
                                 type="text"
                                 value={nombre}
                                 onChange={(e) => setNombre(e.target.value)}
-                                className={`w-full px-4 py-3 rounded-lg border ${
-                                    esAdmin || esProfesional 
-                                        ? 'bg-gray-800/50 border-gray-600 text-gray-400 cursor-not-allowed' 
-                                        : 'bg-gray-800/50 border-gray-600 text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500'
-                                } outline-none transition`}
+                                className="w-full px-4 py-3 rounded-lg border border-white/20 bg-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-white/50 focus:border-transparent outline-none transition"
                                 placeholder="Ej: Juan Pérez"
                                 disabled={esAdmin || esProfesional}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-white/80 mb-1">
                                 Tu WhatsApp
                             </label>
                             <div className="flex">
-                                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-600 bg-gray-800/50 text-gray-400 text-sm">
+                                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-white/20 bg-white/10 text-white/80 text-sm">
                                     +53
                                 </span>
                                 <input
@@ -264,32 +288,32 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                         setWhatsapp(value);
                                         verificarNumero(value);
                                     }}
-                                    className="w-full px-4 py-3 rounded-r-lg border border-gray-600 bg-gray-800/50 text-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+                                    className="w-full px-4 py-3 rounded-r-lg border border-white/20 bg-white/10 text-white placeholder-white/50 focus:ring-2 focus:ring-white/50 focus:border-transparent outline-none transition"
                                     placeholder="Ej: 51234567"
                                     required
                                 />
                             </div>
-                            <p className="text-xs text-gray-400 mt-1">Ingresá tu número de WhatsApp (8 dígitos después del +53)</p>
+                            <p className="text-xs text-white/60 mt-1">Ingresá tu número de WhatsApp (8 dígitos después del +53)</p>
                         </div>
 
                         {verificando && (
-                            <div className="text-amber-400 text-sm bg-black/40 p-2 rounded-lg flex items-center gap-2 border border-amber-500/30">
-                                <div className="animate-spin h-4 w-4 border-2 border-amber-500 border-t-transparent rounded-full"></div>
+                            <div className="text-white text-sm bg-white/10 p-2 rounded-lg flex items-center gap-2 border border-white/20">
+                                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                                 Verificando...
                             </div>
                         )}
 
                         {esAdmin && !verificando && (
-                            <div className="bg-gradient-to-r from-amber-900/80 to-amber-800/80 border-2 border-amber-500 rounded-lg p-4">
+                            <div className="bg-white/20 border border-white/30 rounded-lg p-4">
                                 <div className="flex items-start gap-3">
-                                    <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center text-2xl font-bold text-white">
+                                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold text-white">
                                         A
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-amber-300 font-bold text-xl">
+                                        <p className="text-white font-bold text-xl">
                                             ¡Bienvenido Administrador!
                                         </p>
-                                        <p className="text-amber-400 text-sm">
+                                        <p className="text-white/80 text-sm">
                                             Hacé clic en el botón de abajo para acceder al panel.
                                         </p>
                                     </div>
@@ -298,16 +322,16 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                         )}
 
                         {esProfesional && profesionalInfo && !verificando && (
-                            <div className="bg-gradient-to-r from-amber-900/80 to-amber-800/80 border-2 border-amber-500 rounded-lg p-4">
+                            <div className="bg-white/20 border border-white/30 rounded-lg p-4">
                                 <div className="flex items-start gap-3">
-                                    <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center text-2xl font-bold text-white">
+                                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold text-white">
                                         P
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-amber-300 font-bold text-xl">
+                                        <p className="text-white font-bold text-xl">
                                             ¡Hola {profesionalInfo.nombre}!
                                         </p>
-                                        <p className="text-amber-400 text-sm">
+                                        <p className="text-white/80 text-sm">
                                             Hacé clic en el botón de abajo para acceder a tu panel.
                                         </p>
                                     </div>
@@ -316,16 +340,16 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                         )}
 
                         {clienteAutorizado && !verificando && !esAdmin && !esProfesional && (
-                            <div className="bg-gradient-to-r from-green-900/80 to-green-800/80 border-2 border-green-500 rounded-lg p-4">
+                            <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4">
                                 <div className="flex items-start gap-3">
-                                    <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center text-2xl font-bold text-white">
+                                    <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center text-2xl font-bold text-green-400">
                                         C
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-green-300 font-bold text-xl">
+                                        <p className="text-green-400 font-bold text-xl">
                                             ¡Hola {clienteAutorizado.nombre}!
                                         </p>
-                                        <p className="text-green-400 text-sm">
+                                        <p className="text-green-400/80 text-sm">
                                             Ya tenés acceso para reservar turnos.
                                         </p>
                                     </div>
@@ -336,8 +360,8 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                         {error && !esAdmin && !esProfesional && (
                             <div className={`text-sm p-3 rounded-lg flex items-start gap-2 ${
                                 estadoRechazado 
-                                    ? 'bg-yellow-900/80 text-yellow-300 border border-yellow-700' 
-                                    : 'bg-red-900/80 text-red-300 border border-red-700'
+                                    ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' 
+                                    : 'bg-red-500/20 text-red-300 border border-red-500/30'
                             }`}>
                                 <i className={`${estadoRechazado ? 'icon-alert-circle' : 'icon-triangle-alert'} mt-0.5`}></i>
                                 {error}
@@ -354,7 +378,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                         localStorage.setItem('adminLoginTime', Date.now());
                                         window.location.href = 'admin.html';
                                     }}
-                                    className="w-full bg-gradient-to-r from-amber-600 to-yellow-600 text-white py-4 rounded-xl font-bold hover:from-amber-700 hover:to-yellow-700 transition transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg text-lg"
+                                    className="w-full bg-white text-gray-900 py-4 rounded-xl font-bold hover:bg-white/90 transition transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg text-lg"
                                 >
                                     <span className="text-xl">⚡</span>
                                     Ingresar como Administrador
@@ -373,7 +397,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                         }));
                                         window.location.href = 'admin.html';
                                     }}
-                                    className="w-full bg-gradient-to-r from-amber-700 to-amber-800 text-white py-4 rounded-xl font-bold hover:from-amber-800 hover:to-amber-900 transition transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg text-lg"
+                                    className="w-full bg-white text-gray-900 py-4 rounded-xl font-bold hover:bg-white/90 transition transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg text-lg"
                                 >
                                     <span className="text-xl">✂️</span>
                                     Ingresar como Profesional
@@ -384,7 +408,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                 <button
                                     type="button"
                                     onClick={handleAccesoDirecto}
-                                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 transition transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg text-lg"
+                                    className="w-full bg-white text-gray-900 py-4 rounded-xl font-bold hover:bg-white/90 transition transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg text-lg"
                                 >
                                     <span className="text-xl">📱</span>
                                     Ingresar como Cliente
@@ -395,7 +419,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                 <button
                                     type="submit"
                                     disabled={verificando || (yaTieneSolicitud && !estadoRechazado)}
-                                    className="w-full bg-gradient-to-r from-amber-600 to-amber-700 text-white py-4 rounded-xl font-bold hover:from-amber-700 hover:to-amber-800 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg"
+                                    className="w-full bg-white text-gray-900 py-4 rounded-xl font-bold hover:bg-white/90 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg"
                                 >
                                     <span className="text-xl">📱</span>
                                     {verificando ? 'Verificando...' : 'Solicitar Acceso como Cliente'}

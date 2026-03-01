@@ -1,4 +1,4 @@
-// client-app.js - Aplicación de clientes con flujo completo
+// client-app.js - Aplicación de clientes con flujo completo y PWA
 
 console.log('🚀 CLIENT-APP.JS VERSIÓN:', '2024-03-01');
 
@@ -210,7 +210,7 @@ function ClientApp() {
             
             case 'service':
                 return (
-                    <div className="min-h-screen bg-gray-50">
+                    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-pink-100">
                         <Header 
                             cliente={cliente} 
                             onLogout={handleLogout}
@@ -220,7 +220,7 @@ function ClientApp() {
                             showBackButton={true}
                         />
                         
-                        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+                        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6 pb-20">
                             {/* SECCIÓN 1: SERVICIOS */}
                             <ServiceSelection 
                                 onSelect={setSelectedService} 
@@ -276,15 +276,19 @@ function ClientApp() {
                                     onCancel={() => setSelectedTime('')}
                                 />
                             )}
+                            
+                            {/* WhatsApp Button */}
+                            <WhatsAppButton />
+                            
+                            {/* Botón de instalación PWA - SIEMPRE VISIBLE */}
+                            <InstallButton />
                         </div>
-                        
-                        <WhatsAppButton />
                     </div>
                 );
             
             case 'confirmation':
                 return (
-                    <div className="min-h-screen bg-gray-50">
+                    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-pink-100">
                         <Header 
                             cliente={cliente} 
                             onLogout={handleLogout}
@@ -296,6 +300,9 @@ function ClientApp() {
                             booking={bookingConfirmed} 
                             onReset={resetBooking}
                         />
+                        
+                        {/* Botón de instalación PWA también en confirmación */}
+                        <InstallButton />
                     </div>
                 );
             

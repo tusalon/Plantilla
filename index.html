@@ -3,20 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reserva de Turnos</title>
+    <title>RservasRoma - Reserva de Turnos</title>
     <meta name="description" content="Reservá tu turno fácil y rápido">
     
-    <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
+    <!-- PWA Meta Tags con rutas absolutas -->
+    <link rel="manifest" href="/Plantilla/manifest.json">
     <meta name="theme-color" content="#ec4899">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="BennetSalón">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-title" content="RservasRoma">
+    <link rel="apple-touch-icon" href="/Plantilla/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/Plantilla/icons/icon-192x192.png">
     
-    <!-- Scripts -->
+    <!-- Script para service worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/Plantilla/sw.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registrado:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('❌ Error registrando Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+    
+    <!-- Resto de scripts (igual que antes) -->
     <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
     <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
@@ -38,7 +53,7 @@
 <body>
     <div id="root"></div>
 
-    <!-- Scripts -->
+    <!-- Scripts (rutas relativas para los archivos JS) -->
     <script src="utils/supabase-config.js"></script>
     <script src="utils/config-negocio.js"></script>
     <script src="utils/storage.js"></script>

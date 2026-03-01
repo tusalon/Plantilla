@@ -1,4 +1,4 @@
-// admin-app.js - Panel de administración (VERSIÓN GENÉRICA)
+// admin-app.js - Panel de administración (VERSIÓN FEMENINA CORREGIDA)
 
 console.log('🚀 ADMIN-APP.JS VERSIÓN:', '2024-03-01');
 
@@ -237,7 +237,7 @@ Hola *${bookingData.cliente_nombre}*, lamentamos informarte que tu turno ha sido
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${formatTo12Hour(bookingData.hora_inicio)}
 💈 *Servicio:* ${bookingData.servicio}
-👨‍🎨 *Profesional:* ${bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignado'}
+👩‍🎨 *Profesional:* ${bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignado'}
 
 🔔 *Motivo:* Cancelación por administración
 
@@ -272,6 +272,10 @@ function AdminApp() {
     const [profesional, setProfesional] = React.useState(null);
     const [nombreNegocio, setNombreNegocio] = React.useState('Mi Negocio');
     
+    // Estados para configuración del negocio
+    const [config, setConfig] = React.useState(null);
+    const [configVersion, setConfigVersion] = React.useState(0);
+    
     // Pestaña activa
     const [tabActivo, setTabActivo] = React.useState('reservas');
     
@@ -302,13 +306,28 @@ function AdminApp() {
     const [fechasConHorarios, setFechasConHorarios] = React.useState({});
 
     // ============================================
-    // CARGAR NOMBRE DEL NEGOCIO
+    // CARGAR NOMBRE DEL NEGOCIO Y CONFIGURACIÓN
     // ============================================
     React.useEffect(() => {
         window.getNombreNegocio().then(nombre => {
             setNombreNegocio(nombre);
         });
-    }, []);
+        
+        cargarConfiguracion();
+    }, [configVersion]);
+
+    const cargarConfiguracion = async () => {
+        try {
+            const configData = await window.cargarConfiguracionNegocio(true);
+            setConfig(configData);
+            if (configData?.nombre) {
+                setNombreNegocio(configData.nombre);
+            }
+            console.log('✅ Configuración recargada:', configData);
+        } catch (error) {
+            console.error('Error cargando config:', error);
+        }
+    };
 
     // ============================================
     // DETECTAR ROL Y NIVEL DEL USUARIO AL INICIAR
@@ -967,74 +986,65 @@ El administrador cancelo la reserva.`;
     const days = getDaysInMonth();
 
     return (
-        <div className="min-h-screen bg-gray-100 p-3 sm:p-6">
+        <div className="min-h-screen bg-pink-50 p-3 sm:p-6">
             <div className="max-w-6xl mx-auto space-y-4">
                 
-               // En admin-app.js, modificar el HEADER para que tenga colores femeninos
+                {/* ===== HEADER CON ESTILO FEMENINO ===== */}
+                <div className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-pink-500">
+                    {/* Título y logo */}
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform">
+                            <span className="text-2xl text-white">
+                                {config?.especialidad?.toLowerCase().includes('uñas') ? '💅' : 
+                                 config?.especialidad?.toLowerCase().includes('pelo') ? '💇‍♀️' : '💖'}
+                            </span>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-pink-800">{nombreNegocio}</h1>
+                            <p className="text-xs text-pink-500">Panel de Administración</p>
+                        </div>
+                    </div>
 
-{/* ===== HEADER CON ESTILO FEMENINO ===== */}
-<div className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-l-4 border-pink-500">
-    {/* Título y logo */}
-    <div className="flex items-center gap-3">
-        <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform">
-            <span className="text-2xl text-white">💅</span>
-        </div>
-        <div>
-            <h1 className="text-xl font-bold text-pink-800">{nombreNegocio}</h1>
-            <p className="text-xs text-pink-500">Panel de Administración</p>
-        </div>
-    </div>
+                    {/* Botones de acción */}
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={() => window.location.href = 'editar-negocio.html'}
+                            className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center"
+                        >
+                            <span className="text-lg">💖</span>
+                            <span className="font-medium">Editar Negocio</span>
+                        </button>
 
-    {/* Botones de acción */}
-    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-        <button
-            onClick={() => window.location.href = 'editar-negocio.html'}
-            className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-pink-400 flex-1 sm:flex-none justify-center"
-        >
-            <span className="text-lg">💖</span>
-            <span className="font-medium">Editar Negocio</span>
-        </button>
+                        <button 
+                            onClick={() => {
+                                cargarConfiguracion();
+                                setConfigVersion(prev => prev + 1);
+                            }} 
+                            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
+                            title="Recargar datos del negocio"
+                        >
+                            <i className="icon-refresh-cw text-pink-600"></i>
+                        </button>
 
-        <button 
-            onClick={() => {
-                cargarConfiguracion();
-                setConfigVersion(prev => prev + 1);
-            }} 
-            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
-            title="Recargar datos"
-        >
-            <i className="icon-refresh-cw text-pink-600"></i>
-        </button>
+                        <button 
+                            onClick={fetchBookings} 
+                            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
+                            title="Actualizar reservas"
+                        >
+                            <i className="icon-refresh-cw text-pink-600"></i>
+                        </button>
 
-        <button 
-            onClick={fetchBookings} 
-            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
-            title="Actualizar reservas"
-        >
-            <i className="icon-refresh-cw text-pink-600"></i>
-        </button>
+                        <button 
+                            onClick={handleLogout}
+                            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
+                            title="Cerrar sesión"
+                        >
+                            <i className="icon-log-out text-pink-600"></i>
+                        </button>
+                    </div>
+                </div>
 
-        <button 
-            onClick={handleLogout}
-            className="p-2 bg-pink-50 rounded-full hover:bg-pink-100 transition-all hover:scale-105 border border-pink-200"
-            title="Cerrar sesión"
-        >
-            <i className="icon-log-out text-pink-600"></i>
-        </button>
-    </div>
-</div>
-        {/* Botón Cerrar Sesión */}
-        <button 
-            onClick={handleLogout}
-            className="p-2 bg-red-50 rounded-full hover:bg-red-100 transition-all hover:scale-105 border border-red-200"
-            title="Cerrar sesión"
-        >
-            <i className="icon-log-out text-red-600"></i>
-        </button>
-    </div>
-</div>
-
-                {/* MODAL NUEVA RESERVA */}
+                {/* MODAL NUEVA RESERVA (sin cambios) */}
                 {showNuevaReservaModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
@@ -1144,11 +1154,11 @@ El administrador cancelo la reserva.`;
                                                         let className = "h-10 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all relative";
                                                         
                                                         if (selected) {
-                                                            className += " bg-amber-600 text-white shadow-md ring-2 ring-amber-300";
+                                                            className += " bg-pink-500 text-white shadow-md ring-2 ring-pink-300";
                                                         } else if (!available) {
                                                             className += " text-gray-300 cursor-not-allowed bg-gray-50";
                                                         } else {
-                                                            className += " text-gray-700 hover:bg-amber-50 hover:text-amber-600 hover:scale-105 cursor-pointer";
+                                                            className += " text-gray-700 hover:bg-pink-50 hover:text-pink-600 hover:scale-105 cursor-pointer";
                                                         }
                                                         
                                                         return (
@@ -1180,7 +1190,7 @@ El administrador cancelo la reserva.`;
                                                         onClick={() => setNuevaReservaData({...nuevaReservaData, hora_inicio: hora})}
                                                         className={`py-2 px-3 rounded-lg text-sm font-medium transition ${
                                                             nuevaReservaData.hora_inicio === hora
-                                                                ? 'bg-amber-600 text-white'
+                                                                ? 'bg-pink-500 text-white'
                                                                 : 'bg-gray-100 hover:bg-gray-200'
                                                         }`}
                                                     >
@@ -1213,7 +1223,7 @@ El administrador cancelo la reserva.`;
                             onClick={() => setTabActivo(tab.id)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                                 tabActivo === tab.id 
-                                    ? 'bg-amber-600 text-white shadow-md scale-105' 
+                                    ? 'bg-pink-500 text-white shadow-md scale-105' 
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                         >
@@ -1242,9 +1252,9 @@ El administrador cancelo la reserva.`;
                 {tabActivo === 'clientes' && (userRole === 'admin' || userNivel >= 2) && (
                     <div className="space-y-4">
                         {cargandoClientes && (
-                            <div className="bg-blue-50 p-3 rounded-lg flex items-center gap-2">
-                                <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                                <span className="text-blue-600">Cargando datos...</span>
+                            <div className="bg-pink-50 p-3 rounded-lg flex items-center gap-2">
+                                <div className="animate-spin h-4 w-4 border-2 border-pink-600 border-t-transparent rounded-full"></div>
+                                <span className="text-pink-600">Cargando datos...</span>
                             </div>
                         )}
 
@@ -1341,8 +1351,8 @@ El administrador cancelo la reserva.`;
                 {tabActivo === 'reservas' && (
                     <>
                         {userRole === 'profesional' && profesional && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <p className="text-blue-800 font-medium">
+                            <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
+                                <p className="text-pink-800 font-medium">
                                     Hola {profesional.nombre} 👋 - Mostrando tus reservas ({filteredBookings.length})
                                 </p>
                             </div>
@@ -1351,21 +1361,21 @@ El administrador cancelo la reserva.`;
                         <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
                             <div className="flex flex-wrap gap-3 items-center">
                                 <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="border rounded-lg px-3 py-2 text-sm" />
-                                {filterDate && <button onClick={() => setFilterDate('')} className="text-red-500 text-sm">Limpiar filtro</button>}
+                                {filterDate && <button onClick={() => setFilterDate('')} className="text-pink-500 text-sm">Limpiar filtro</button>}
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                                <button onClick={() => setStatusFilter('activas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'activas' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Activas ({activasCount})</button>
-                                <button onClick={() => setStatusFilter('completadas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'completadas' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Completadas ({completadasCount})</button>
-                                <button onClick={() => setStatusFilter('canceladas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'canceladas' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Canceladas ({canceladasCount})</button>
-                                <button onClick={() => setStatusFilter('todas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'todas' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700'}`}>Todas ({bookings.length})</button>
+                                <button onClick={() => setStatusFilter('activas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'activas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Activas ({activasCount})</button>
+                                <button onClick={() => setStatusFilter('completadas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'completadas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Completadas ({completadasCount})</button>
+                                <button onClick={() => setStatusFilter('canceladas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'canceladas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Canceladas ({canceladasCount})</button>
+                                <button onClick={() => setStatusFilter('todas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'todas' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Todas ({bookings.length})</button>
                             </div>
                         </div>
 
                         {loading ? (
                             <div className="text-center py-12">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto"></div>
-                                <p className="text-gray-500 mt-4">Cargando reservas...</p>
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+                                <p className="text-pink-500 mt-4">Cargando reservas...</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
@@ -1376,23 +1386,23 @@ El administrador cancelo la reserva.`;
                                 ) : (
                                     filteredBookings.map(b => (
                                         <div key={b.id} className={`bg-white p-4 rounded-xl shadow-sm border-l-4 ${
-                                            b.estado === 'Reservado' ? 'border-l-amber-500' :
+                                            b.estado === 'Reservado' ? 'border-l-pink-500' :
                                             b.estado === 'Completado' ? 'border-l-green-500' :
                                             'border-l-red-500'
                                         }`}>
                                             <div className="flex justify-between mb-2">
                                                 <span className="font-semibold">{window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha}</span>
-                                                <span className="text-sm bg-amber-100 text-amber-700 px-2 py-1 rounded-full">{formatTo12Hour(b.hora_inicio)}</span>
+                                                <span className="text-sm bg-pink-100 text-pink-700 px-2 py-1 rounded-full">{formatTo12Hour(b.hora_inicio)}</span>
                                             </div>
                                             <div className="text-sm space-y-1">
                                                 <p><span className="font-medium">👤 Cliente:</span> {b.cliente_nombre}</p>
                                                 <p><span className="font-medium">📱 WhatsApp:</span> {b.cliente_whatsapp}</p>
                                                 <p><span className="font-medium">💈 Servicio:</span> {b.servicio}</p>
-                                                <p><span className="font-medium">👨‍🎨 Profesional:</span> {b.profesional_nombre || b.trabajador_nombre}</p>
+                                                <p><span className="font-medium">👩‍🎨 Profesional:</span> {b.profesional_nombre || b.trabajador_nombre}</p>
                                             </div>
                                             <div className="flex justify-between items-center mt-3 pt-2 border-t">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold
-                                                    ${b.estado === 'Reservado' ? 'bg-yellow-100 text-yellow-700' : 
+                                                    ${b.estado === 'Reservado' ? 'bg-pink-100 text-pink-700' : 
                                                       b.estado === 'Completado' ? 'bg-green-100 text-green-700' : 
                                                       'bg-red-100 text-red-700'}`}>
                                                     {b.estado}

@@ -1,11 +1,11 @@
-// utils/config-negocio.js - Configuración del negocio (SIN CACHÉ para datos sensibles)
+// utils/config-negocio.js - Configuración del negocio (CON CACHÉ CONTROLADO)
 
 console.log('🏢 config-negocio.js cargado');
 
-// Cache de configuración (solo para evitar múltiples llamadas seguidas)
+// Cache de configuración (para evitar llamadas innecesarias)
 let configCache = null;
 let ultimaActualizacion = 0;
-const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos máximo
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos
 
 /**
  * Obtiene el negocio_id del localStorage
@@ -25,7 +25,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         return null;
     }
 
-    // Usar caché solo si no se fuerza refresco y tenemos datos recientes
+    // Usar caché si no se fuerza refresco y tenemos datos recientes
     if (!forceRefresh && configCache && (Date.now() - ultimaActualizacion) < CACHE_DURATION) {
         console.log('📦 Usando cache de configuración');
         return configCache;
@@ -36,19 +36,17 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         
         // Añadir timestamp para evitar caché HTTP
         const timestamp = Date.now();
-        const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}&select=*&_t=${timestamp}`,
-            {
-                headers: {
-                    'apikey': window.SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                },
-                cache: 'no-store' // Importante: no cachear la respuesta
+        const url = `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}&select=*`;
+        
+        console.log('📡 URL:', url);
+        
+        const response = await fetch(url, {
+            headers: {
+                'apikey': window.SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                'Cache-Control': 'no-cache'
             }
-        );
+        });
 
         if (!response.ok) {
             console.error('❌ Error response:', await response.text());
@@ -56,12 +54,15 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         }
 
         const data = await response.json();
+        
+        // GUARDAR EN CACHE
         configCache = data[0] || null;
         ultimaActualizacion = Date.now();
         
-        console.log('✅ Configuración cargada:', configCache?.nombre);
+        console.log('✅ Configuración cargada y cacheada:', configCache?.nombre);
         console.log('📞 Teléfono dueño:', configCache?.telefono);
         console.log('📢 NTFY Topic:', configCache?.ntfy_topic);
+        console.log('🎨 Logo URL:', configCache?.logo_url);
         
         return configCache;
     } catch (error) {
@@ -117,5 +118,14 @@ window.negocioConfigurado = async function() {
     const config = await window.cargarConfiguracionNegocio();
     return config?.configurado || false;
 };
+
+// Precargar configuración al inicio
+setTimeout(async () => {
+    const negocioId = getNegocioId();
+    if (negocioId) {
+        console.log('🔄 Precargando configuración...');
+        await window.cargarConfiguracionNegocio();
+    }
+}, 500);
 
 console.log('✅ config-negocio.js listo');

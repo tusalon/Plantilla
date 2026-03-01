@@ -124,7 +124,7 @@ window.enviarNotificacionPush = async function(titulo, mensaje, etiqueta = 'tada
         })
         .then(response => {
             if (response.ok) {
-                console.log('✅ Notificación push enviada a ntfy');
+                console.log('✅ Notificación push enviada a ntfy:', ntfyTopic);
             } else {
                 console.error('❌ Error en respuesta ntfy:', response.status);
             }
@@ -222,10 +222,16 @@ window.agregarClientePendiente = async function(nombre, whatsapp) {
         const newSolicitud = await response.json();
         console.log('✅ Solicitud creada:', newSolicitud);
         
-        // Obtener datos del negocio para notificaciones
+        // Obtener datos del negocio para notificaciones (SIEMPRE FRESCOS)
         const nombreNegocio = await window.getNombreNegocio();
         const adminPhone = await window.getTelefonoDuenno();
         const ntfyTopic = await window.getNtfyTopic();
+        
+        console.log('📱 Datos para notificaciones:', { 
+            negocio: nombreNegocio, 
+            adminPhone, 
+            ntfyTopic 
+        });
         
         const fecha = new Date().toLocaleDateString('es-ES', { 
             weekday: 'long', 
@@ -251,7 +257,7 @@ Ingresá al panel de administración para aprobar o rechazar esta solicitud.`;
         // Mensaje para Push
         const mensajePush = `NUEVA SOLICITUD DE ACCESO\n\nNombre: ${nombre}\nWhatsApp: +${whatsapp.replace('53', '')}\nFecha: ${fecha}`;
         
-        // Enviar WhatsApp
+        // Enviar WhatsApp al número del dueño
         const telefonoLimpio = adminPhone.replace(/\D/g, '');
         const encodedText = encodeURIComponent(mensajeWhatsApp);
         
@@ -267,7 +273,7 @@ Ingresá al panel de administración para aprobar o rechazar esta solicitud.`;
             document.body.removeChild(link);
         }, 200);
         
-        // Enviar Push
+        // Enviar Push al tópico del negocio
         fetch(`https://ntfy.sh/${ntfyTopic}`, {
             method: 'POST',
             body: mensajePush,
@@ -279,14 +285,16 @@ Ingresá al panel de administración para aprobar o rechazar esta solicitud.`;
         })
         .then(response => {
             if (response.ok) {
-                console.log('✅ Notificación push enviada a ntfy');
+                console.log('✅ Notificación push enviada a ntfy:', ntfyTopic);
+            } else {
+                console.error('❌ Error en respuesta ntfy:', response.status);
             }
         })
         .catch(error => {
             console.error('❌ Error enviando notificación push:', error);
         });
         
-        console.log('✅ Ambas notificaciones enviadas: WhatsApp + Push');
+        console.log('✅ Ambas notificaciones enviadas correctamente');
         
         return true;
     } catch (error) {

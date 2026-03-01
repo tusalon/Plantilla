@@ -9,6 +9,7 @@ function MyBookings({ cliente, onVolver }) {
     const [telefonoDuenno, setTelefonoDuenno] = React.useState('53357234');
     const [nombreNegocio, setNombreNegocio] = React.useState('');
     const [ntfyTopic, setNtfyTopic] = React.useState('reservas');
+    const [datosCargados, setDatosCargados] = React.useState(false);
 
     React.useEffect(() => {
         cargarReservas();
@@ -17,13 +18,17 @@ function MyBookings({ cliente, onVolver }) {
 
     const cargarDatosNegocio = async () => {
         try {
+            console.log('📱 MyBookings - Cargando datos del negocio...');
             const tel = await window.getTelefonoDuenno();
             const nombre = await window.getNombreNegocio();
             const topic = await window.getNtfyTopic();
+            
+            console.log('📱 Datos cargados:', { tel, nombre, topic });
+            
             setTelefonoDuenno(tel);
             setNombreNegocio(nombre);
             setNtfyTopic(topic);
-            console.log('✅ Datos de notificación cargados en MyBookings:', { tel, nombre, topic });
+            setDatosCargados(true);
         } catch (error) {
             console.error('Error cargando datos de negocio:', error);
         }
@@ -129,6 +134,8 @@ El cliente canceló su turno desde la app.`;
             const telefonoLimpio = telefonoDuenno.replace(/\D/g, '');
             const encodedText = encodeURIComponent(mensaje);
             
+            console.log('📤 Enviando WhatsApp de cancelación a:', telefonoLimpio);
+            
             const link = document.createElement('a');
             link.href = `https://api.whatsapp.com/send?phone=${telefonoLimpio}&text=${encodedText}`;
             link.target = '_blank';
@@ -141,7 +148,7 @@ El cliente canceló su turno desde la app.`;
                 document.body.removeChild(link);
             }, 200);
             
-            console.log('✅ WhatsApp de cancelación enviado a:', telefonoLimpio);
+            console.log('✅ WhatsApp de cancelación enviado');
         } catch (error) {
             console.error('Error enviando WhatsApp:', error);
         }
@@ -168,6 +175,8 @@ Profesional: ${profesional}
 
 El cliente canceló su turno desde la app.`;
 
+            console.log('📤 Enviando push de cancelación a ntfy:', ntfyTopic);
+            
             fetch(`https://ntfy.sh/${ntfyTopic}`, {
                 method: 'POST',
                 body: mensajePush,
@@ -180,6 +189,8 @@ El cliente canceló su turno desde la app.`;
             .then(response => {
                 if (response.ok) {
                     console.log('✅ Push de cancelación enviado a:', ntfyTopic);
+                } else {
+                    console.error('❌ Error en respuesta ntfy:', response.status);
                 }
             })
             .catch(error => {

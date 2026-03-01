@@ -1,18 +1,30 @@
-// components/Confirmation.js - Versión femenina
+// components/Confirmation.js - Versión con notificaciones dinámicas
 
 function Confirmation({ booking, onReset }) {
     const [telefonoDuenno, setTelefonoDuenno] = React.useState('53357234');
     const [nombreNegocio, setNombreNegocio] = React.useState('');
     const [ntfyTopic, setNtfyTopic] = React.useState('reservas');
+    const [cargando, setCargando] = React.useState(true);
 
     React.useEffect(() => {
         const cargarDatos = async () => {
-            const tel = await window.getTelefonoDuenno();
-            const nombre = await window.getNombreNegocio();
-            const topic = await window.getNtfyTopic();
-            setTelefonoDuenno(tel);
-            setNombreNegocio(nombre);
-            setNtfyTopic(topic);
+            setCargando(true);
+            try {
+                console.log('📱 Confirmation - Cargando datos para notificaciones...');
+                const tel = await window.getTelefonoDuenno();
+                const nombre = await window.getNombreNegocio();
+                const topic = await window.getNtfyTopic();
+                
+                console.log('📱 Datos cargados:', { tel, nombre, topic });
+                
+                setTelefonoDuenno(tel);
+                setNombreNegocio(nombre);
+                setNtfyTopic(topic);
+            } catch (error) {
+                console.error('Error cargando datos de notificación:', error);
+            } finally {
+                setCargando(false);
+            }
         };
         cargarDatos();
     }, []);
@@ -45,6 +57,8 @@ function Confirmation({ booking, onReset }) {
 
             const telefonoLimpio = telefonoDuenno.replace(/\D/g, '');
             const encodedText = encodeURIComponent(mensaje);
+            
+            console.log('📤 Enviando WhatsApp a:', telefonoLimpio);
             
             const link = document.createElement('a');
             link.href = `https://api.whatsapp.com/send?phone=${telefonoLimpio}&text=${encodedText}`;
@@ -87,6 +101,8 @@ Reserva confirmada automáticamente.`;
 
             const tituloPush = `Nueva reserva - ${nombreNegocio}`;
 
+            console.log('📤 Enviando push a ntfy:', ntfyTopic);
+            
             fetch(`https://ntfy.sh/${ntfyTopic}`, {
                 method: 'POST',
                 body: mensajePush,
@@ -98,7 +114,9 @@ Reserva confirmada automáticamente.`;
             })
             .then(response => {
                 if (response.ok) {
-                    console.log('✅ Notificación push enviada a ntfy');
+                    console.log('✅ Notificación push enviada a ntfy:', ntfyTopic);
+                } else {
+                    console.error('❌ Error en respuesta ntfy:', response.status);
                 }
             })
             .catch(error => {
@@ -111,15 +129,17 @@ Reserva confirmada automáticamente.`;
     };
 
     React.useEffect(() => {
+        if (cargando) return;
+        
         const timer = setTimeout(() => {
-            console.log('📤 Enviando notificaciones...');
+            console.log('📤 Enviando notificaciones a:', telefonoDuenno);
             enviarWhatsAppDuenno();
             enviarPushDuenno();
             console.log('✅ Ambas notificaciones enviadas');
         }, 1500);
         
         return () => clearTimeout(timer);
-    }, []);
+    }, [telefonoDuenno, nombreNegocio, ntfyTopic, cargando]);
 
     const fechaConDia = window.formatFechaCompleta ? 
         window.formatFechaCompleta(booking.fecha) : 

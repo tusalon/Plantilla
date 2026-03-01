@@ -1,25 +1,18 @@
-// components/Calendar.js - Versión para LAG.barberia (CORREGIDO)
+// components/Calendar.js - Versión genérica para profesionales
 
-function Calendar({ onDateSelect, selectedDate, worker }) {
+function Calendar({ onDateSelect, selectedDate, profesional }) {
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [diasLaborales, setDiasLaborales] = React.useState([]);
     const [cargandoHorarios, setCargandoHorarios] = React.useState(false);
 
-    // 🔥 Función para formatear fecha local correctamente
-    const formatDateLocal = (dateStr) => {
-        if (!dateStr) return '';
-        const [year, month, day] = dateStr.split('-').map(Number);
-        return new Date(year, month - 1, day).toLocaleDateString();
-    };
-
     React.useEffect(() => {
-        if (!worker) return;
+        if (!profesional) return;
         
         const cargarDiasLaborales = async () => {
             setCargandoHorarios(true);
             try {
-                const horarios = await window.salonConfig.getHorariosBarbero(worker.id);
-                console.log(`📅 Días laborales de ${worker.nombre}:`, horarios.dias);
+                const horarios = await window.salonConfig.getHorariosProfesional(profesional.id);
+                console.log(`📅 Días laborales de ${profesional.nombre}:`, horarios.dias);
                 setDiasLaborales(horarios.dias || []);
             } catch (error) {
                 console.error('Error cargando días laborales:', error);
@@ -30,7 +23,7 @@ function Calendar({ onDateSelect, selectedDate, worker }) {
         };
         
         cargarDiasLaborales();
-    }, [worker]);
+    }, [profesional]);
 
     const formatDate = (date) => {
         const y = date.getFullYear();
@@ -75,8 +68,8 @@ function Calendar({ onDateSelect, selectedDate, worker }) {
         return date.getDay() === 0;
     };
 
-    const barberoTrabajaEsteDia = (date) => {
-        if (!worker || diasLaborales.length === 0) return true;
+    const profesionalTrabajaEsteDia = (date) => {
+        if (!profesional || diasLaborales.length === 0) return true;
         
         const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
         const diaSemana = diasSemana[date.getDay()];
@@ -124,9 +117,9 @@ function Calendar({ onDateSelect, selectedDate, worker }) {
                 <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <div className="icon-calendar text-amber-500"></div>
                     3. Seleccioná una fecha
-                    {worker && (
+                    {profesional && (
                         <span className="text-sm bg-amber-100 text-amber-700 px-3 py-1 rounded-full ml-2">
-                            con {worker.nombre}
+                            con {profesional.nombre}
                         </span>
                     )}
                 </h2>
@@ -143,9 +136,9 @@ function Calendar({ onDateSelect, selectedDate, worker }) {
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <div className="icon-calendar text-amber-500"></div>
                 3. Seleccioná una fecha
-                {worker && (
+                {profesional && (
                     <span className="text-sm bg-amber-100 text-amber-700 px-3 py-1 rounded-full ml-2">
-                        con {worker.nombre}
+                        con {profesional.nombre}
                     </span>
                 )}
                 {selectedDate && (
@@ -182,8 +175,8 @@ function Calendar({ onDateSelect, selectedDate, worker }) {
                             const sunday = isSunday(date);
                             const selected = selectedDate === dateStr;
                             
-                            const barberoTrabaja = barberoTrabajaEsteDia(date);
-                            const available = !past && !sunday && barberoTrabaja;
+                            const profesionalTrabaja = profesionalTrabajaEsteDia(date);
+                            const available = !past && !sunday && profesionalTrabaja;
                             
                             let className = "h-10 w-full flex items-center justify-center rounded-lg text-sm font-medium transition-all relative";
                             
@@ -202,8 +195,8 @@ function Calendar({ onDateSelect, selectedDate, worker }) {
                                 title = "Fecha pasada";
                             } else if (sunday) {
                                 title = "Domingo cerrado";
-                            } else if (!barberoTrabaja && worker) {
-                                title = `${worker.nombre} no trabaja este día`;
+                            } else if (!profesionalTrabaja && profesional) {
+                                title = `${profesional.nombre} no trabaja este día`;
                             } else {
                                 title = "Disponible";
                             }
@@ -227,12 +220,12 @@ function Calendar({ onDateSelect, selectedDate, worker }) {
                 </div>
             </div>
 
-            {worker && (
+            {profesional && (
                 <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg border border-blue-100">
                     <div className="flex items-center gap-2">
                         <div className="icon-info text-blue-500 text-lg"></div>
                         <span>
-                            <strong>📅 Días que trabaja {worker.nombre}:</strong>{' '}
+                            <strong>📅 Días que trabaja {profesional.nombre}:</strong>{' '}
                             {diasLaborales.length > 0 
                                 ? diasLaborales.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')
                                 : 'No hay configuración (todos los días disponibles)'}

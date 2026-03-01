@@ -1,7 +1,5 @@
-// admin-app.js - LAG.barberia (VERSIÓN COMPLETA CON TURNOS COMPLETADOS CORREGIDA)
-// admin-app.js - PRINCIPIO DEL ARCHIVO
+// admin-app.js - Panel de administración (VERSIÓN GENÉRICA)
 
-// 🔥 DETECTOR DE VERSIONES ANTIGUAS
 console.log('🚀 ADMIN-APP.JS VERSIÓN:', '2024-03-01');
 
 window.addEventListener('error', function(e) {
@@ -94,13 +92,11 @@ async function createBooking(bookingData) {
 }
 
 // ============================================
-// 🔥 FUNCIÓN CORREGIDA PARA MARCAR TURNOS COMO COMPLETADOS (CON ZONA HORARIA)
+// FUNCIÓN PARA MARCAR TURNOS COMO COMPLETADOS
 // ============================================
 async function marcarTurnosCompletados() {
     try {
         const ahora = new Date();
-        
-        // 🔥 CORREGIDO: Obtener fecha LOCAL en formato YYYY-MM-DD
         const año = ahora.getFullYear();
         const mes = (ahora.getMonth() + 1).toString().padStart(2, '0');
         const dia = ahora.getDate().toString().padStart(2, '0');
@@ -113,11 +109,10 @@ async function marcarTurnosCompletados() {
         console.log('⏰ Verificando turnos para marcar como completados...');
         console.log('📅 Fecha LOCAL actual:', hoy);
         console.log('🕐 Hora LOCAL actual:', `${horaActual}:${minutosActuales}`);
-        console.log('🕒 UTC:', ahora.toISOString());
         
-        // Buscar turnos Reservados con fecha MENOR a hoy (días anteriores)
+        // Buscar turnos Reservados con fecha MENOR a hoy
         const responsePasados = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/reservas?estado=eq.Reservado&fecha=lt.${hoy}&select=id,fecha,hora_inicio,hora_fin,cliente_nombre,servicio,barbero_nombre`,
+            `${window.SUPABASE_URL}/rest/v1/reservas?estado=eq.Reservado&fecha=lt.${hoy}&select=id,fecha,hora_inicio,hora_fin,cliente_nombre,servicio,profesional_nombre`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -133,9 +128,9 @@ async function marcarTurnosCompletados() {
         
         const turnosPasados = await responsePasados.json();
         
-        // También verificar turnos de HOY que ya hayan terminado
+        // Turnos de HOY que ya terminaron
         const responseHoy = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/reservas?estado=eq.Reservado&fecha=eq.${hoy}&select=id,fecha,hora_inicio,hora_fin,cliente_nombre,servicio,barbero_nombre`,
+            `${window.SUPABASE_URL}/rest/v1/reservas?estado=eq.Reservado&fecha=eq.${hoy}&select=id,fecha,hora_inicio,hora_fin,cliente_nombre,servicio,profesional_nombre`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -146,7 +141,6 @@ async function marcarTurnosCompletados() {
         
         const turnosHoy = responseHoy.ok ? await responseHoy.json() : [];
         
-        // Filtrar turnos de hoy que ya terminaron (comparando hora_local)
         const turnosHoyTerminados = turnosHoy.filter(turno => {
             const [horas, minutos] = turno.hora_fin.split(':').map(Number);
             const totalMinutosFin = horas * 60 + minutos;
@@ -212,21 +206,6 @@ const calculateEndTime = (startTime, duration) => {
     return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
 };
 
-const getMinAllowedTime = () => {
-    const ahora = new Date();
-    const horaActual = ahora.getHours();
-    const minutosActuales = ahora.getMinutes();
-    const totalMinutosActual = horaActual * 60 + minutosActuales;
-    const minAllowedMinutes = totalMinutosActual + 120;
-    
-    return {
-        totalMinutes: minAllowedMinutes,
-        hours: Math.floor(minAllowedMinutes / 60),
-        minutes: minAllowedMinutes % 60,
-        formatted: `${Math.floor(minAllowedMinutes / 60).toString().padStart(2, '0')}:${(minAllowedMinutes % 60).toString().padStart(2, '0')}`
-    };
-};
-
 const getCurrentLocalDate = () => {
     const ahora = new Date();
     const year = ahora.getFullYear();
@@ -251,23 +230,21 @@ const enviarCancelacionWhatsApp = (bookingData) => {
             bookingData.fecha;
         
         const mensaje = 
-`❌ *CANCELACIÓN DE TURNO - LAG.barberia*
+`❌ *CANCELACIÓN DE TURNO*
 
 Hola *${bookingData.cliente_nombre}*, lamentamos informarte que tu turno ha sido cancelado.
 
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${formatTo12Hour(bookingData.hora_inicio)}
 💈 *Servicio:* ${bookingData.servicio}
-👨‍🎨 *Barbero:* ${bookingData.barbero_nombre || bookingData.trabajador_nombre || 'No asignado'}
+👨‍🎨 *Profesional:* ${bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignado'}
 
 🔔 *Motivo:* Cancelación por administración
 
 📱 *¿Querés reprogramar?*
 Podés hacerlo desde la app
 
-Disculpá las molestias. Esperamos verte pronto en LAG.barberia ✂️
-
-LAG.barberia - Nivel que se nota`;
+Disculpá las molestias.`;
 
         const telefono = bookingData.cliente_whatsapp.replace(/\D/g, '');
         const encodedText = encodeURIComponent(mensaje);
@@ -284,7 +261,6 @@ LAG.barberia - Nivel que se nota`;
 // COMPONENTE PRINCIPAL
 // ============================================
 function AdminApp() {
-    // Estados principales
     const [bookings, setBookings] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [filterDate, setFilterDate] = React.useState('');
@@ -293,7 +269,8 @@ function AdminApp() {
     // Detectar rol del usuario y nivel
     const [userRole, setUserRole] = React.useState('admin');
     const [userNivel, setUserNivel] = React.useState(3);
-    const [barbero, setBarbero] = React.useState(null);
+    const [profesional, setProfesional] = React.useState(null);
+    const [nombreNegocio, setNombreNegocio] = React.useState('Mi Negocio');
     
     // Pestaña activa
     const [tabActivo, setTabActivo] = React.useState('reservas');
@@ -312,32 +289,41 @@ function AdminApp() {
         cliente_nombre: '',
         cliente_whatsapp: '',
         servicio: '',
-        barbero_id: '',
+        profesional_id: '',
         fecha: '',
         hora_inicio: ''
     });
 
     const [serviciosList, setServiciosList] = React.useState([]);
-    const [barberosList, setBarberosList] = React.useState([]);
+    const [profesionalesList, setProfesionalesList] = React.useState([]);
     const [horariosDisponibles, setHorariosDisponibles] = React.useState([]);
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [diasLaborales, setDiasLaborales] = React.useState([]);
     const [fechasConHorarios, setFechasConHorarios] = React.useState({});
 
     // ============================================
+    // CARGAR NOMBRE DEL NEGOCIO
+    // ============================================
+    React.useEffect(() => {
+        window.getNombreNegocio().then(nombre => {
+            setNombreNegocio(nombre);
+        });
+    }, []);
+
+    // ============================================
     // DETECTAR ROL Y NIVEL DEL USUARIO AL INICIAR
     // ============================================
     React.useEffect(() => {
-        const barberoAuth = window.getBarberoAutenticado?.();
-        if (barberoAuth) {
-            console.log('👤 Usuario detectado como barbero:', barberoAuth);
-            setUserRole('barbero');
-            setBarbero(barberoAuth);
-            setUserNivel(barberoAuth.nivel || 1);
+        const profesionalAuth = window.getProfesionalAutenticado?.();
+        if (profesionalAuth) {
+            console.log('👤 Usuario detectado como profesional:', profesionalAuth);
+            setUserRole('profesional');
+            setProfesional(profesionalAuth);
+            setUserNivel(profesionalAuth.nivel || 1);
             
             setNuevaReservaData(prev => ({
                 ...prev,
-                barbero_id: barberoAuth.id
+                profesional_id: profesionalAuth.id
             }));
         } else {
             console.log('👑 Usuario detectado como admin');
@@ -353,23 +339,23 @@ function AdminApp() {
                 const servicios = await window.salonServicios.getAll(true);
                 setServiciosList(servicios || []);
             }
-            if (window.salonBarberos) {
-                const barberos = await window.salonBarberos.getAll(true);
-                setBarberosList(barberos || []);
+            if (window.salonProfesionales) {
+                const profesionales = await window.salonProfesionales.getAll(true);
+                setProfesionalesList(profesionales || []);
             }
         };
         cargarDatosModal();
     }, []);
 
-    // Cargar días laborales cuando se selecciona barbero
+    // Cargar días laborales cuando se selecciona profesional
     React.useEffect(() => {
         const cargarDiasLaborales = async () => {
-            if (nuevaReservaData.barbero_id) {
+            if (nuevaReservaData.profesional_id) {
                 try {
-                    const horarios = await window.salonConfig.getHorariosBarbero(nuevaReservaData.barbero_id);
+                    const horarios = await window.salonConfig.getHorariosProfesional(nuevaReservaData.profesional_id);
                     setDiasLaborales(horarios.dias || []);
                     
-                    await cargarDisponibilidadMes(currentDate, nuevaReservaData.barbero_id);
+                    await cargarDisponibilidadMes(currentDate, nuevaReservaData.profesional_id);
                 } catch (error) {
                     console.error('Error cargando días laborales:', error);
                     setDiasLaborales([]);
@@ -377,14 +363,14 @@ function AdminApp() {
             }
         };
         cargarDiasLaborales();
-    }, [nuevaReservaData.barbero_id]);
+    }, [nuevaReservaData.profesional_id]);
 
     // ============================================
     // FUNCIÓN PARA CARGAR HORARIOS DISPONIBLES
     // ============================================
     React.useEffect(() => {
         const cargarHorarios = async () => {
-            if (!nuevaReservaData.barbero_id || !nuevaReservaData.fecha || !nuevaReservaData.servicio) {
+            if (!nuevaReservaData.profesional_id || !nuevaReservaData.fecha || !nuevaReservaData.servicio) {
                 setHorariosDisponibles([]);
                 return;
             }
@@ -393,13 +379,13 @@ function AdminApp() {
                 const servicio = serviciosList.find(s => s.nombre === nuevaReservaData.servicio);
                 if (!servicio) return;
 
-                const horarios = await window.salonConfig.getHorariosBarbero(nuevaReservaData.barbero_id);
+                const horarios = await window.salonConfig.getHorariosProfesional(nuevaReservaData.profesional_id);
                 const horasTrabajo = horarios.horas || [];
                 
                 const slotsTrabajo = horasTrabajo.map(indice => indiceToHoraLegible(indice));
                 
                 const response = await fetch(
-                    `${window.SUPABASE_URL}/rest/v1/reservas?fecha=eq.${nuevaReservaData.fecha}&barbero_id=eq.${nuevaReservaData.barbero_id}&estado=neq.Cancelado&select=hora_inicio,hora_fin`,
+                    `${window.SUPABASE_URL}/rest/v1/reservas?fecha=eq.${nuevaReservaData.fecha}&profesional_id=eq.${nuevaReservaData.profesional_id}&estado=neq.Cancelado&select=hora_inicio,hora_fin`,
                     {
                         headers: {
                             'apikey': window.SUPABASE_ANON_KEY,
@@ -452,17 +438,17 @@ function AdminApp() {
         };
 
         cargarHorarios();
-    }, [nuevaReservaData.barbero_id, nuevaReservaData.fecha, nuevaReservaData.servicio, serviciosList]);
+    }, [nuevaReservaData.profesional_id, nuevaReservaData.fecha, nuevaReservaData.servicio, serviciosList]);
 
     // Función para cargar disponibilidad de un mes completo
-    const cargarDisponibilidadMes = async (fecha, barberoId) => {
-        if (!barberoId) return;
+    const cargarDisponibilidadMes = async (fecha, profesionalId) => {
+        if (!profesionalId) return;
         
         try {
             const year = fecha.getFullYear();
             const month = fecha.getMonth();
             
-            const horarios = await window.salonConfig.getHorariosBarbero(barberoId);
+            const horarios = await window.salonConfig.getHorariosProfesional(profesionalId);
             const horasTrabajo = horarios.horas || [];
             
             if (horasTrabajo.length === 0) {
@@ -477,7 +463,7 @@ function AdminApp() {
             const fechaFin = ultimoDia.toISOString().split('T')[0];
             
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/reservas?fecha=gte.${fechaInicio}&fecha=lte.${fechaFin}&barbero_id=eq.${barberoId}&estado=neq.Cancelado&select=fecha,hora_inicio,hora_fin`,
+                `${window.SUPABASE_URL}/rest/v1/reservas?fecha=gte.${fechaInicio}&fecha=lte.${fechaFin}&profesional_id=eq.${profesionalId}&estado=neq.Cancelado&select=fecha,hora_inicio,hora_fin`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -537,8 +523,8 @@ function AdminApp() {
         nuevaFecha.setMonth(currentDate.getMonth() + direccion);
         setCurrentDate(nuevaFecha);
         
-        if (nuevaReservaData.barbero_id) {
-            cargarDisponibilidadMes(nuevaFecha, nuevaReservaData.barbero_id);
+        if (nuevaReservaData.profesional_id) {
+            cargarDisponibilidadMes(nuevaFecha, nuevaReservaData.profesional_id);
         }
     };
 
@@ -570,7 +556,7 @@ function AdminApp() {
     };
 
     const isDateAvailable = (date) => {
-        if (!date || !nuevaReservaData.barbero_id) return false;
+        if (!date || !nuevaReservaData.profesional_id) return false;
         
         const fechaStr = formatDate(date);
         const diaSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'][date.getDay()];
@@ -594,7 +580,7 @@ function AdminApp() {
     // ============================================
     const handleCrearReservaManual = async () => {
         if (!nuevaReservaData.cliente_nombre || !nuevaReservaData.cliente_whatsapp || 
-            !nuevaReservaData.servicio || !nuevaReservaData.barbero_id || 
+            !nuevaReservaData.servicio || !nuevaReservaData.profesional_id || 
             !nuevaReservaData.fecha || !nuevaReservaData.hora_inicio) {
             alert('Completá todos los campos');
             return;
@@ -607,9 +593,9 @@ function AdminApp() {
                 return;
             }
             
-            const barbero = barberosList.find(b => b.id === parseInt(nuevaReservaData.barbero_id));
-            if (!barbero) {
-                alert('Barbero no encontrado');
+            const profesional = profesionalesList.find(p => p.id === parseInt(nuevaReservaData.profesional_id));
+            if (!profesional) {
+                alert('Profesional no encontrado');
                 return;
             }
             
@@ -620,8 +606,8 @@ function AdminApp() {
                 cliente_whatsapp: `53${nuevaReservaData.cliente_whatsapp.replace(/\D/g, '')}`,
                 servicio: nuevaReservaData.servicio,
                 duracion: servicio.duracion,
-                barbero_id: nuevaReservaData.barbero_id,
-                barbero_nombre: barbero.nombre,
+                profesional_id: nuevaReservaData.profesional_id,
+                profesional_nombre: profesional.nombre,
                 fecha: nuevaReservaData.fecha,
                 hora_inicio: nuevaReservaData.hora_inicio,
                 hora_fin: endTime,
@@ -640,7 +626,7 @@ function AdminApp() {
                     cliente_nombre: '',
                     cliente_whatsapp: '',
                     servicio: '',
-                    barbero_id: userRole === 'barbero' ? barbero?.id : '',
+                    profesional_id: userRole === 'profesional' ? profesional?.id : '',
                     fecha: '',
                     hora_inicio: ''
                 });
@@ -727,7 +713,7 @@ function AdminApp() {
                 await loadClientesAutorizados();
                 alert(`✅ Cliente ${cliente.nombre} aprobado`);
                 
-                const mensaje = `✅ ¡Hola ${cliente.nombre}! Tu acceso a LAG.barberia ha sido APROBADO. Ya podés reservar turnos desde la app.`;
+                const mensaje = `✅ ¡Hola ${cliente.nombre}! Tu acceso ha sido APROBADO. Ya podés reservar turnos desde la app.`;
                 const telefono = cliente.whatsapp.replace(/\D/g, '');
                 const encodedText = encodeURIComponent(mensaje);
                 window.open(`https://api.whatsapp.com/send?phone=${telefono}&text=${encodedText}`, '_blank');
@@ -776,16 +762,16 @@ function AdminApp() {
     };
 
     // ============================================
-    // FUNCIONES DE RESERVAS (ACTUALIZADA)
+    // FUNCIONES DE RESERVAS
     // ============================================
     const fetchBookings = async () => {
         setLoading(true);
         try {
             let data;
             
-            if (userRole === 'barbero' && barbero) {
-                console.log(`📋 Cargando reservas de barbero ${barbero.id}...`);
-                data = await window.getReservasPorBarbero?.(barbero.id, false) || [];
+            if (userRole === 'profesional' && profesional) {
+                console.log(`📋 Cargando reservas de profesional ${profesional.id}...`);
+                data = await window.getReservasPorProfesional?.(profesional.id, false) || [];
             } else {
                 data = await getAllBookings();
             }
@@ -793,12 +779,10 @@ function AdminApp() {
             if (Array.isArray(data)) {
                 data.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio));
                 
-                // 🔥 Verificar si hay turnos que deban ser completados
                 await marcarTurnosCompletados();
                 
-                // Recargar datos después de marcar completados
-                if (userRole === 'barbero' && barbero) {
-                    data = await window.getReservasPorBarbero?.(barbero.id, false) || [];
+                if (userRole === 'profesional' && profesional) {
+                    data = await window.getReservasPorProfesional?.(profesional.id, false) || [];
                 } else {
                     data = await getAllBookings();
                 }
@@ -815,7 +799,6 @@ function AdminApp() {
         }
     };
 
-    // 🔥 EFECTO PARA VERIFICAR CADA MINUTO
     React.useEffect(() => {
         const intervalo = setInterval(() => {
             console.log('⏰ Verificando turnos para completar...');
@@ -824,7 +807,7 @@ function AdminApp() {
                 fetchBookings();
             });
             
-        }, 60000); // Cada 60 segundos
+        }, 60000);
         
         return () => clearInterval(intervalo);
     }, []);
@@ -832,16 +815,16 @@ function AdminApp() {
     React.useEffect(() => {
         fetchBookings();
         
-        if (userRole === 'admin' || (userRole === 'barbero' && userNivel >= 2)) {
+        if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2)) {
             loadClientesAutorizados();
         }
         
         console.log('🔍 Verificando auth:', {
             userRole,
             userNivel,
-            barbero
+            profesional
         });
-    }, [userRole, userNivel, barbero]);
+    }, [userRole, userNivel, profesional]);
 
     const handleCancel = async (id, bookingData) => {
         if (!confirm(`¿Cancelar reserva de ${bookingData.cliente_nombre}?`)) return;
@@ -850,7 +833,7 @@ function AdminApp() {
         if (ok) {
             enviarCancelacionWhatsApp(bookingData);
             
-            // 🔥 NOTIFICAR AL DUEÑO POR NTFY
+            // Notificar al dueño por NTFY
             try {
                 const fechaConDia = window.formatFechaCompleta ? 
                     window.formatFechaCompleta(bookingData.fecha) : 
@@ -864,15 +847,17 @@ WhatsApp: ${bookingData.cliente_whatsapp}
 Servicio: ${bookingData.servicio}
 Fecha: ${fechaConDia}
 Hora: ${formatTo12Hour(bookingData.hora_inicio)}
-Barbero: ${bookingData.barbero_nombre || bookingData.trabajador_nombre || 'No asignado'}
+Profesional: ${bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignado'}
 
 El administrador cancelo la reserva.`;
 
-                fetch('https://ntfy.sh/lag-barberia', {
+                const ntfyTopic = await window.getNtfyTopic();
+                
+                fetch(`https://ntfy.sh/${ntfyTopic}`, {
                     method: 'POST',
                     body: mensajeLimpio,
                     headers: {
-                        'Title': 'Cancelacion por admin - LAG.barberia',
+                        'Title': 'Cancelacion por admin',
                         'Priority': 'default',
                         'Tags': 'x'
                     }
@@ -897,35 +882,33 @@ El administrador cancelo la reserva.`;
         }
     };
 
-    // 🔥 FUNCIÓN DE LOGOUT - Redirige a ClientAuthScreen
-const handleLogout = () => {
-    if (confirm('¿Cerrar sesión?')) {
-        // Limpiar TODOS los datos de autenticación
-        localStorage.removeItem('adminAuth');
-        localStorage.removeItem('adminUser');
-        localStorage.removeItem('adminLoginTime');
-        localStorage.removeItem('barberoAuth');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('clienteAuth'); // Por si acaso
-        
-        console.log('🚪 Sesión cerrada, redirigiendo a ClientAuthScreen');
-        window.location.href = 'index.html'; // ✅ Redirige a ClientAuthScreen
-    }
-};
+    const handleLogout = () => {
+        if (confirm('¿Cerrar sesión?')) {
+            localStorage.removeItem('adminAuth');
+            localStorage.removeItem('adminUser');
+            localStorage.removeItem('adminLoginTime');
+            localStorage.removeItem('profesionalAuth');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('clienteAuth');
+            localStorage.removeItem('negocioId');
+            
+            console.log('🚪 Sesión cerrada, redirigiendo a login');
+            window.location.href = 'admin-login.html';
+        }
+    };
+
     // ============================================
-    // FILTROS CORREGIDOS
+    // FILTROS
     // ============================================
     const getFilteredBookings = () => {
         console.log('🔄 Aplicando filtros a', bookings.length, 'reservas');
         
-        // PASO 1: Filtrar por fecha (si hay filtro activo)
         let filtradas = filterDate
             ? bookings.filter(b => b.fecha === filterDate)
             : [...bookings];
         
         console.log('📊 Después filtro fecha:', filtradas.length);
         
-        // PASO 2: Aplicar filtro de estado seleccionado
         let resultado;
         if (statusFilter === 'activas') {
             resultado = filtradas.filter(b => b.estado === 'Reservado');
@@ -933,7 +916,7 @@ const handleLogout = () => {
             resultado = filtradas.filter(b => b.estado === 'Completado');
         } else if (statusFilter === 'canceladas') {
             resultado = filtradas.filter(b => b.estado === 'Cancelado');
-        } else { // 'todas'
+        } else {
             resultado = filtradas;
         }
         
@@ -949,16 +932,16 @@ const handleLogout = () => {
 
     const getTabsDisponibles = () => {
         const tabs = [];
-        tabs.push({ id: 'reservas', icono: '📅', label: userRole === 'barbero' ? 'Mis Reservas' : 'Reservas' });
+        tabs.push({ id: 'reservas', icono: '📅', label: userRole === 'profesional' ? 'Mis Reservas' : 'Reservas' });
         
-        if (userRole === 'admin' || (userRole === 'barbero' && userNivel >= 2)) {
+        if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2)) {
             tabs.push({ id: 'configuracion', icono: '⚙️', label: 'Configuración' });
             tabs.push({ id: 'clientes', icono: '👤', label: 'Clientes' });
         }
         
-        if (userRole === 'admin' || (userRole === 'barbero' && userNivel >= 3)) {
+        if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 3)) {
             tabs.push({ id: 'servicios', icono: '💈', label: 'Servicios' });
-            tabs.push({ id: 'barberos', icono: '👥', label: 'Barberos' });
+            tabs.push({ id: 'profesionales', icono: '👥', label: 'Profesionales' });
         }
         
         return tabs;
@@ -969,7 +952,7 @@ const handleLogout = () => {
             cliente_nombre: '',
             cliente_whatsapp: '',
             servicio: '',
-            barbero_id: userRole === 'barbero' ? barbero?.id : '',
+            profesional_id: userRole === 'profesional' ? profesional?.id : '',
             fecha: '',
             hora_inicio: ''
         });
@@ -991,12 +974,12 @@ const handleLogout = () => {
                 <div className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center flex-wrap gap-2">
                     <div>
                         <h1 className="text-xl font-bold">
-                            {userRole === 'barbero' 
-                                ? `Panel de ${barbero?.nombre}`
-                                : 'Panel Admin - LAG.barberia'
+                            {userRole === 'profesional' 
+                                ? `Panel de ${profesional?.nombre}`
+                                : `Panel Admin - ${nombreNegocio}`
                             }
                         </h1>
-                        {userRole === 'barbero' && (
+                        {userRole === 'profesional' && (
                             <p className="text-xs mt-1">
                                 <span className={`px-2 py-0.5 rounded-full ${
                                     userNivel === 1 ? 'bg-gray-100 text-gray-600' :
@@ -1051,11 +1034,8 @@ const handleLogout = () => {
                             </div>
 
                             <div className="space-y-4">
-                                {/* Nombre del cliente */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Nombre del Cliente *
-                                    </label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Cliente *</label>
                                     <input
                                         type="text"
                                         value={nuevaReservaData.cliente_nombre}
@@ -1065,15 +1045,10 @@ const handleLogout = () => {
                                     />
                                 </div>
 
-                                {/* WhatsApp del cliente */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        WhatsApp del Cliente *
-                                    </label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp del Cliente *</label>
                                     <div className="flex">
-                                        <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                                            +53
-                                        </span>
+                                        <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500">+53</span>
                                         <input
                                             type="tel"
                                             value={nuevaReservaData.cliente_whatsapp}
@@ -1088,11 +1063,8 @@ const handleLogout = () => {
                                     <p className="text-xs text-gray-400 mt-1">8 dígitos después del +53</p>
                                 </div>
 
-                                {/* Selección de servicio */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Servicio *
-                                    </label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Servicio *</label>
                                     <select
                                         value={nuevaReservaData.servicio}
                                         onChange={(e) => setNuevaReservaData({...nuevaReservaData, servicio: e.target.value})}
@@ -1107,70 +1079,48 @@ const handleLogout = () => {
                                     </select>
                                 </div>
 
-                                {/* Selección de barbero */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Barbero *
-                                    </label>
-                                    {userRole === 'barbero' && userNivel <= 2 ? (
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Profesional *</label>
+                                    {userRole === 'profesional' && userNivel <= 2 ? (
                                         <div className="bg-blue-50 p-3 rounded-lg">
                                             <p className="text-sm text-blue-700">
-                                                Reserva asignada a vos: <strong>{barbero?.nombre}</strong>
+                                                Reserva asignada a vos: <strong>{profesional?.nombre}</strong>
                                             </p>
                                         </div>
                                     ) : (
                                         <select
-                                            value={nuevaReservaData.barbero_id}
-                                            onChange={(e) => setNuevaReservaData({...nuevaReservaData, barbero_id: e.target.value})}
+                                            value={nuevaReservaData.profesional_id}
+                                            onChange={(e) => setNuevaReservaData({...nuevaReservaData, profesional_id: e.target.value})}
                                             className="w-full border rounded-lg px-3 py-2"
                                         >
-                                            <option value="">Seleccionar barbero</option>
-                                            {barberosList.map(b => (
-                                                <option key={b.id} value={b.id}>
-                                                    {b.nombre} - {b.especialidad}
+                                            <option value="">Seleccionar profesional</option>
+                                            {profesionalesList.map(p => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.nombre} - {p.especialidad}
                                                 </option>
                                             ))}
                                         </select>
                                     )}
                                 </div>
 
-                                {/* Calendario de fechas */}
-                                {nuevaReservaData.barbero_id && (
+                                {nuevaReservaData.profesional_id && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Fecha *
-                                        </label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Fecha *</label>
                                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                                             <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-100">
-                                                <button 
-                                                    onClick={() => cambiarMes(-1)} 
-                                                    className="p-2 hover:bg-white rounded-full transition-colors"
-                                                >
-                                                    ◀
-                                                </button>
-                                                <span className="font-bold text-gray-800">
-                                                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                                                </span>
-                                                <button 
-                                                    onClick={() => cambiarMes(1)} 
-                                                    className="p-2 hover:bg-white rounded-full transition-colors"
-                                                >
-                                                    ▶
-                                                </button>
+                                                <button onClick={() => cambiarMes(-1)} className="p-2 hover:bg-white rounded-full transition-colors">◀</button>
+                                                <span className="font-bold text-gray-800">{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
+                                                <button onClick={() => cambiarMes(1)} className="p-2 hover:bg-white rounded-full transition-colors">▶</button>
                                             </div>
 
                                             <div className="p-3">
                                                 <div className="grid grid-cols-7 mb-2 text-center text-xs font-medium text-gray-400">
-                                                    {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
-                                                        <div key={i}>{d}</div>
-                                                    ))}
+                                                    {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (<div key={i}>{d}</div>))}
                                                 </div>
                                                 
                                                 <div className="grid grid-cols-7 gap-1">
                                                     {days.map((date, idx) => {
-                                                        if (!date) {
-                                                            return <div key={idx} className="h-10" />;
-                                                        }
+                                                        if (!date) return <div key={idx} className="h-10" />;
 
                                                         const fechaStr = formatDate(date);
                                                         const available = isDateAvailable(date);
@@ -1203,12 +1153,9 @@ const handleLogout = () => {
                                     </div>
                                 )}
 
-                                {/* Horarios disponibles */}
                                 {nuevaReservaData.fecha && (
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Hora de inicio *
-                                        </label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Hora de inicio *</label>
                                         {horariosDisponibles.length > 0 ? (
                                             <div className="grid grid-cols-3 gap-2">
                                                 {horariosDisponibles.map(hora => (
@@ -1234,20 +1181,9 @@ const handleLogout = () => {
                                     </div>
                                 )}
 
-                                {/* Botones de acción */}
                                 <div className="flex gap-3 pt-4">
-                                    <button
-                                        onClick={() => setShowNuevaReservaModal(false)}
-                                        className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-100"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        onClick={handleCrearReservaManual}
-                                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                                    >
-                                        Crear Reserva
-                                    </button>
+                                    <button onClick={() => setShowNuevaReservaModal(false)} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-100">Cancelar</button>
+                                    <button onClick={handleCrearReservaManual} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Crear Reserva</button>
                                 </div>
                             </div>
                         </div>
@@ -1275,8 +1211,8 @@ const handleLogout = () => {
                 {/* CONTENIDO */}
                 {tabActivo === 'configuracion' && (
                     <ConfigPanel 
-                        barberoId={userRole === 'barbero' ? barbero?.id : null}
-                        modoRestringido={userRole === 'barbero' && userNivel === 2}
+                        profesionalId={userRole === 'profesional' ? profesional?.id : null}
+                        modoRestringido={userRole === 'profesional' && userNivel === 2}
                     />
                 )}
 
@@ -1284,8 +1220,8 @@ const handleLogout = () => {
                     <ServiciosPanel />
                 )}
 
-                {tabActivo === 'barberos' && (userRole === 'admin' || userNivel >= 3) && (
-                    <BarberosPanel />
+                {tabActivo === 'profesionales' && (userRole === 'admin' || userNivel >= 3) && (
+                    <ProfesionalesPanel />
                 )}
 
                 {tabActivo === 'clientes' && (userRole === 'admin' || userNivel >= 2) && (
@@ -1297,7 +1233,6 @@ const handleLogout = () => {
                             </div>
                         )}
 
-                        {/* CLIENTES AUTORIZADOS */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
                             <button
                                 onClick={() => {
@@ -1309,9 +1244,7 @@ const handleLogout = () => {
                                 <div className="flex items-center gap-2">
                                     <span>✅</span>
                                     <span className="font-medium">Clientes Autorizados</span>
-                                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
-                                        {clientesAutorizados.length}
-                                    </span>
+                                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">{clientesAutorizados.length}</span>
                                 </div>
                                 <span>{showClientesAutorizados ? '▲' : '▼'}</span>
                             </button>
@@ -1320,9 +1253,7 @@ const handleLogout = () => {
                                 <div className="mt-4">
                                     <div className="space-y-3 max-h-80 overflow-y-auto">
                                         {clientesAutorizados.length === 0 ? (
-                                            <div className="text-center py-6 text-gray-500">
-                                                <p>No hay clientes autorizados</p>
-                                            </div>
+                                            <div className="text-center py-6 text-gray-500"><p>No hay clientes autorizados</p></div>
                                         ) : (
                                             clientesAutorizados.map((cliente, index) => (
                                                 <div key={index} className="bg-green-50 p-4 rounded-lg border border-green-200">
@@ -1331,13 +1262,8 @@ const handleLogout = () => {
                                                             <p className="font-bold text-gray-800">{cliente.nombre}</p>
                                                             <p className="text-sm text-gray-600">📱 +{cliente.whatsapp}</p>
                                                         </div>
-                                                        {(userRole === 'admin' || userNivel >= 3) && cliente.whatsapp !== '53357234' && (
-                                                            <button
-                                                                onClick={() => handleEliminarAutorizado(cliente.whatsapp)}
-                                                                className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
-                                                            >
-                                                                Quitar
-                                                            </button>
+                                                        {(userRole === 'admin' || userNivel >= 3) && (
+                                                            <button onClick={() => handleEliminarAutorizado(cliente.whatsapp)} className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">Quitar</button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1348,7 +1274,6 @@ const handleLogout = () => {
                             )}
                         </div>
 
-                        {/* CLIENTES PENDIENTES */}
                         {(userRole === 'admin' || userNivel >= 3) && (
                             <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-500">
                                 <button
@@ -1362,9 +1287,7 @@ const handleLogout = () => {
                                         <span>⏳</span>
                                         <span className="font-medium">Solicitudes Pendientes</span>
                                         {clientesPendientes.length > 0 && (
-                                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
-                                                {clientesPendientes.length}
-                                            </span>
+                                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">{clientesPendientes.length}</span>
                                         )}
                                     </div>
                                     <span>{showClientesPendientes ? '▲' : '▼'}</span>
@@ -1374,9 +1297,7 @@ const handleLogout = () => {
                                     <div className="mt-4">
                                         <div className="space-y-3 max-h-80 overflow-y-auto">
                                             {clientesPendientes.length === 0 ? (
-                                                <div className="text-center py-6 text-gray-500">
-                                                    <p>No hay solicitudes pendientes</p>
-                                                </div>
+                                                <div className="text-center py-6 text-gray-500"><p>No hay solicitudes pendientes</p></div>
                                             ) : (
                                                 clientesPendientes.map((cliente, index) => (
                                                     <div key={index} className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
@@ -1386,18 +1307,8 @@ const handleLogout = () => {
                                                                 <p className="text-sm text-gray-600">📱 +{cliente.whatsapp}</p>
                                                             </div>
                                                             <div className="flex gap-2">
-                                                                <button
-                                                                    onClick={() => handleAprobarCliente(cliente.whatsapp)}
-                                                                    className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"
-                                                                >
-                                                                    Aprobar
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleRechazarCliente(cliente.whatsapp)}
-                                                                    className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
-                                                                >
-                                                                    Rechazar
-                                                                </button>
+                                                                <button onClick={() => handleAprobarCliente(cliente.whatsapp)} className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">Aprobar</button>
+                                                                <button onClick={() => handleRechazarCliente(cliente.whatsapp)} className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">Rechazar</button>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1414,73 +1325,25 @@ const handleLogout = () => {
                 {/* RESERVAS */}
                 {tabActivo === 'reservas' && (
                     <>
-                        {userRole === 'barbero' && barbero && (
+                        {userRole === 'profesional' && profesional && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <p className="text-blue-800 font-medium">
-                                    Hola {barbero.nombre} 👋 - Mostrando tus reservas ({filteredBookings.length})
+                                    Hola {profesional.nombre} 👋 - Mostrando tus reservas ({filteredBookings.length})
                                 </p>
                             </div>
                         )}
 
                         <div className="bg-white p-4 rounded-xl shadow-sm space-y-3">
                             <div className="flex flex-wrap gap-3 items-center">
-                                <input 
-                                    type="date" 
-                                    value={filterDate} 
-                                    onChange={(e) => setFilterDate(e.target.value)} 
-                                    className="border rounded-lg px-3 py-2 text-sm"
-                                />
-                                {filterDate && (
-                                    <button onClick={() => setFilterDate('')} className="text-red-500 text-sm">
-                                        Limpiar filtro
-                                    </button>
-                                )}
-                                <span className="text-xs text-gray-400">
-                                    (Filtros: Activas | Completadas | Canceladas)
-                                </span>
+                                <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="border rounded-lg px-3 py-2 text-sm" />
+                                {filterDate && <button onClick={() => setFilterDate('')} className="text-red-500 text-sm">Limpiar filtro</button>}
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                                <button
-                                    onClick={() => setStatusFilter('activas')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                                        statusFilter === 'activas' 
-                                            ? 'bg-green-500 text-white' 
-                                            : 'bg-gray-100 text-gray-700'
-                                    }`}
-                                >
-                                    Activas ({activasCount})
-                                </button>
-                                <button
-                                    onClick={() => setStatusFilter('completadas')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                                        statusFilter === 'completadas' 
-                                            ? 'bg-blue-500 text-white' 
-                                            : 'bg-gray-100 text-gray-700'
-                                    }`}
-                                >
-                                    Completadas ({completadasCount})
-                                </button>
-                                <button
-                                    onClick={() => setStatusFilter('canceladas')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                                        statusFilter === 'canceladas' 
-                                            ? 'bg-red-500 text-white' 
-                                            : 'bg-gray-100 text-gray-700'
-                                    }`}
-                                >
-                                    Canceladas ({canceladasCount})
-                                </button>
-                                <button
-                                    onClick={() => setStatusFilter('todas')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                                        statusFilter === 'todas' 
-                                            ? 'bg-gray-800 text-white' 
-                                            : 'bg-gray-100 text-gray-700'
-                                    }`}
-                                >
-                                    Todas ({bookings.length})
-                                </button>
+                                <button onClick={() => setStatusFilter('activas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'activas' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Activas ({activasCount})</button>
+                                <button onClick={() => setStatusFilter('completadas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'completadas' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Completadas ({completadasCount})</button>
+                                <button onClick={() => setStatusFilter('canceladas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'canceladas' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'}`}>Canceladas ({canceladasCount})</button>
+                                <button onClick={() => setStatusFilter('todas')} className={`px-4 py-2 rounded-lg text-sm font-medium ${statusFilter === 'todas' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700'}`}>Todas ({bookings.length})</button>
                             </div>
                         </div>
 
@@ -1494,11 +1357,6 @@ const handleLogout = () => {
                                 {filteredBookings.length === 0 ? (
                                     <div className="text-center py-12 bg-white rounded-xl">
                                         <p className="text-gray-500">No hay reservas para mostrar</p>
-                                        {bookings.length > filteredBookings.length && (
-                                            <p className="text-xs text-gray-400 mt-2">
-                                                (Hay {bookings.length} reservas en total)
-                                            </p>
-                                        )}
                                     </div>
                                 ) : (
                                     filteredBookings.map(b => (
@@ -1508,18 +1366,14 @@ const handleLogout = () => {
                                             'border-l-red-500'
                                         }`}>
                                             <div className="flex justify-between mb-2">
-                                                <span className="font-semibold">
-                                                    {window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha}
-                                                </span>
-                                                <span className="text-sm bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
-                                                    {formatTo12Hour(b.hora_inicio)}
-                                                </span>
+                                                <span className="font-semibold">{window.formatFechaCompleta ? window.formatFechaCompleta(b.fecha) : b.fecha}</span>
+                                                <span className="text-sm bg-amber-100 text-amber-700 px-2 py-1 rounded-full">{formatTo12Hour(b.hora_inicio)}</span>
                                             </div>
                                             <div className="text-sm space-y-1">
                                                 <p><span className="font-medium">👤 Cliente:</span> {b.cliente_nombre}</p>
                                                 <p><span className="font-medium">📱 WhatsApp:</span> {b.cliente_whatsapp}</p>
                                                 <p><span className="font-medium">💈 Servicio:</span> {b.servicio}</p>
-                                                <p><span className="font-medium">👨‍🎨 Barbero:</span> {b.barbero_nombre || b.trabajador_nombre}</p>
+                                                <p><span className="font-medium">👨‍🎨 Profesional:</span> {b.profesional_nombre || b.trabajador_nombre}</p>
                                             </div>
                                             <div className="flex justify-between items-center mt-3 pt-2 border-t">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold
@@ -1529,10 +1383,7 @@ const handleLogout = () => {
                                                     {b.estado}
                                                 </span>
                                                 {b.estado === 'Reservado' && (
-                                                    <button 
-                                                        onClick={() => handleCancel(b.id, b)} 
-                                                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 flex items-center gap-1"
-                                                    >
+                                                    <button onClick={() => handleCancel(b.id, b)} className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 flex items-center gap-1">
                                                         <span>❌</span> Cancelar
                                                     </button>
                                                 )}

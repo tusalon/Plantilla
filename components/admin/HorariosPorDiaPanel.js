@@ -1,6 +1,6 @@
 // components/admin/HorariosPorDiaPanel.js - Panel para configurar horarios por día
 
-function HorariosPorDiaPanel({ barberoId, barberoNombre, onGuardar, onCancelar }) {
+function HorariosPorDiaPanel({ profesionalId, profesionalNombre, onGuardar, onCancelar }) {
     const [horariosPorDia, setHorariosPorDia] = React.useState({});
     const [cargando, setCargando] = React.useState(true);
     const [diaSeleccionado, setDiaSeleccionado] = React.useState('lunes');
@@ -32,15 +32,15 @@ function HorariosPorDiaPanel({ barberoId, barberoNombre, onGuardar, onCancelar }
     }, []);
 
     React.useEffect(() => {
-        if (barberoId) {
+        if (profesionalId) {
             cargarHorarios();
         }
-    }, [barberoId]);
+    }, [profesionalId]);
 
     const cargarHorarios = async () => {
         setCargando(true);
         try {
-            const horarios = await window.salonConfig.getHorariosPorDia(barberoId);
+            const horarios = await window.salonConfig.getHorariosPorDia(profesionalId);
             console.log('📋 Horarios cargados por día:', horarios);
             
             // Inicializar todos los días con array vacío si no existen
@@ -133,7 +133,7 @@ function HorariosPorDiaPanel({ barberoId, barberoNombre, onGuardar, onCancelar }
 
     const handleGuardar = async () => {
         try {
-            await window.salonConfig.guardarHorariosPorDia(barberoId, horariosPorDia);
+            await window.salonConfig.guardarHorariosPorDia(profesionalId, horariosPorDia);
             onGuardar(horariosPorDia);
         } catch (error) {
             console.error('Error guardando:', error);
@@ -152,7 +152,7 @@ function HorariosPorDiaPanel({ barberoId, barberoNombre, onGuardar, onCancelar }
     return (
         <div className="bg-white rounded-xl shadow-sm p-6">
             <h3 className="text-lg font-bold mb-4">
-                📅 Horarios de {barberoNombre} por día
+                📅 Horarios de {profesionalNombre} por día
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -260,7 +260,7 @@ function HorariosPorDiaPanel({ barberoId, barberoNombre, onGuardar, onCancelar }
                     </div>
                     
                     <p className="text-xs text-gray-500 mt-2">
-                        ⏰ Horarios cada 30 minutos. Seleccioná las horas en las que {barberoNombre} trabaja este día.
+                        ⏰ Horarios cada 30 minutos. Seleccioná las horas en las que {profesionalNombre} trabaja este día.
                     </p>
                 </div>
             </div>

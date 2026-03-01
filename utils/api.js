@@ -1,4 +1,4 @@
-// utils/api.js - VERSIÓN COMPLETA para LAG.barberia (SIN campo email)
+// utils/api.js - Versión genérica para profesionales
 
 console.log('📡 api.js cargado');
 
@@ -38,13 +38,13 @@ async function getBookingsByDate(dateStr) {
 }
 
 /**
- * Fetch bookings for a specific date AND worker
+ * Fetch bookings for a specific date AND profesional
  */
-async function getBookingsByDateAndWorker(dateStr, workerId) {
+async function getBookingsByDateAndProfesional(dateStr, profesionalId) {
     try {
-        console.log(`🌐 Solicitando turnos para ${dateStr} del barbero ${workerId}`);
+        console.log(`🌐 Solicitando turnos para ${dateStr} del profesional ${profesionalId}`);
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?fecha=eq.${dateStr}&barbero_id=eq.${workerId}&estado=neq.Cancelado&select=*`,
+            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?fecha=eq.${dateStr}&profesional_id=eq.${profesionalId}&estado=neq.Cancelado&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -76,13 +76,12 @@ async function createBooking(bookingData) {
             cliente_whatsapp: bookingData.cliente_whatsapp,
             servicio: bookingData.servicio,
             duracion: bookingData.duracion,
-            barbero_id: bookingData.trabajador_id,
-            barbero_nombre: bookingData.trabajador_nombre,
+            profesional_id: bookingData.trabajador_id || bookingData.profesional_id,
+            profesional_nombre: bookingData.trabajador_nombre || bookingData.profesional_nombre,
             fecha: bookingData.fecha,
             hora_inicio: bookingData.hora_inicio,
             hora_fin: bookingData.hora_fin,
             estado: bookingData.estado || 'Reservado'
-            // 🔥 CAMPO EMAIL ELIMINADO - no existe en la tabla
         };
 
         console.log('📤 Enviando a Supabase:', dataForSupabase);
@@ -181,7 +180,9 @@ async function updateBookingStatus(id, newStatus) {
 
 // Hacer funciones globales
 window.getBookingsByDate = getBookingsByDate;
-window.getBookingsByDateAndWorker = getBookingsByDateAndWorker;
+window.getBookingsByDateAndProfesional = getBookingsByDateAndProfesional;
+// Alias para compatibilidad
+window.getBookingsByDateAndWorker = getBookingsByDateAndProfesional;
 window.createBooking = createBooking;
 window.getAllBookings = getAllBookings;
 window.updateBookingStatus = updateBookingStatus;

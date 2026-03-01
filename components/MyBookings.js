@@ -1,4 +1,4 @@
-// components/MyBookings.js - Pantalla de reservas del cliente (CON WHATSAPP + PUSH)
+// components/MyBookings.js - Pantalla de reservas del cliente (VERSIÓN GENÉRICA)
 
 function MyBookings({ cliente, onVolver }) {
     const [bookings, setBookings] = React.useState([]);
@@ -6,10 +6,23 @@ function MyBookings({ cliente, onVolver }) {
     const [cancelando, setCancelando] = React.useState(false);
     const [filtro, setFiltro] = React.useState('activas');
     const [mensajeError, setMensajeError] = React.useState('');
+    const [telefonoDuenno, setTelefonoDuenno] = React.useState('53357234');
+    const [nombreNegocio, setNombreNegocio] = React.useState('');
+    const [ntfyTopic, setNtfyTopic] = React.useState('reservas');
 
     React.useEffect(() => {
         cargarReservas();
+        cargarDatosNegocio();
     }, []);
+
+    const cargarDatosNegocio = async () => {
+        const tel = await window.getTelefonoDuenno();
+        const nombre = await window.getNombreNegocio();
+        const topic = await window.getNtfyTopic();
+        setTelefonoDuenno(tel);
+        setNombreNegocio(nombre);
+        setNtfyTopic(topic);
+    };
 
     const cargarReservas = async () => {
         setLoading(true);
@@ -94,32 +107,30 @@ function MyBookings({ cliente, onVolver }) {
         }
     };
 
-    // 🔥 NOTIFICAR POR WHATSAPP CUANDO UN CLIENTE CANCELA - CORREGIDO PARA IPHONE
+    // NOTIFICAR POR WHATSAPP CUANDO UN CLIENTE CANCELA
     const notificarCancelacionWhatsApp = (bookingData) => {
         try {
             const fechaConDia = window.formatFechaCompleta ? 
                 window.formatFechaCompleta(bookingData.fecha) : 
                 bookingData.fecha;
             
+            const profesional = bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignado';
+            
             const mensaje = 
-`❌ *CANCELACIÓN DE CLIENTE - LAG.barberia*
+`❌ *CANCELACIÓN DE CLIENTE - ${nombreNegocio}*
 
 👤 *Cliente:* ${bookingData.cliente_nombre}
 📱 *WhatsApp:* ${bookingData.cliente_whatsapp}
 💈 *Servicio:* ${bookingData.servicio}
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${formatTo12Hour(bookingData.hora_inicio)}
-👨‍🎨 *Barbero:* ${bookingData.barbero_nombre || bookingData.trabajador_nombre || 'No asignado'}
+👨‍🎨 *Profesional:* ${profesional}
 
 El cliente canceló su turno desde la app.`;
 
-            const adminPhone = "53357234";
-            
-            // ✅ CORREGIDO: Usar método que funciona en iPhone
-            const telefonoLimpio = adminPhone.replace(/\D/g, '');
+            const telefonoLimpio = telefonoDuenno.replace(/\D/g, '');
             const encodedText = encodeURIComponent(mensaje);
             
-            // Crear link invisible (funciona en iPhone)
             const link = document.createElement('a');
             link.href = `https://api.whatsapp.com/send?phone=${telefonoLimpio}&text=${encodedText}`;
             link.target = '_blank';
@@ -128,7 +139,6 @@ El cliente canceló su turno desde la app.`;
             document.body.appendChild(link);
             link.click();
             
-            // Limpiar después
             setTimeout(() => {
                 document.body.removeChild(link);
             }, 200);
@@ -139,12 +149,14 @@ El cliente canceló su turno desde la app.`;
         }
     };
 
-    // 🔥 NOTIFICAR POR PUSH CUANDO UN CLIENTE CANCELA
+    // NOTIFICAR POR PUSH CUANDO UN CLIENTE CANCELA
     const notificarCancelacionPush = (bookingData) => {
         try {
             const fechaConDia = window.formatFechaCompleta ? 
                 window.formatFechaCompleta(bookingData.fecha) : 
                 bookingData.fecha;
+            
+            const profesional = bookingData.profesional_nombre || bookingData.trabajador_nombre || 'No asignado';
             
             const mensajePush = 
 `CANCELACION DE CLIENTE
@@ -154,12 +166,12 @@ WhatsApp: ${bookingData.cliente_whatsapp}
 Servicio: ${bookingData.servicio}
 Fecha: ${fechaConDia}
 Hora: ${formatTo12Hour(bookingData.hora_inicio)}
-Barbero: ${bookingData.barbero_nombre || bookingData.trabajador_nombre || 'No asignado'}
+Profesional: ${profesional}
 
-El cliente cancelo su turno desde la app.`;
+El cliente canceló su turno desde la app.`;
 
             if (window.enviarNotificacionPush) {
-                window.enviarNotificacionPush('Cancelación de cliente - LAG.barberia', mensajePush, 'x');
+                window.enviarNotificacionPush(`Cancelación - ${nombreNegocio}`, mensajePush, 'x');
                 console.log('✅ Push de cancelación enviado');
             }
         } catch (error) {
@@ -179,7 +191,7 @@ El cliente cancelo su turno desde la app.`;
 
 ⏰ Solo se permiten cancelaciones con al menos 1 hora de anticipación.
 
-Si no puede asistir, contactanos por WhatsApp al +53 53357234`;
+Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
             
             alert(mensaje);
             return;
@@ -212,7 +224,7 @@ Si no puede asistir, contactanos por WhatsApp al +53 53357234`;
                 throw new Error('Error al cancelar');
             }
             
-            // 🔥 ENVIAR AMBAS NOTIFICACIONES
+            // ENVIAR AMBAS NOTIFICACIONES
             console.log('📤 Enviando notificaciones de cancelación...');
             notificarCancelacionWhatsApp(bookingData);
             notificarCancelacionPush(bookingData);
@@ -343,6 +355,8 @@ Si no puede asistir, contactanos por WhatsApp al +53 53357234`;
                                 window.formatFechaCompleta(booking.fecha) : 
                                 booking.fecha;
                             
+                            const profesional = booking.profesional_nombre || booking.trabajador_nombre || 'No asignado';
+                            
                             return (
                                 <div
                                     key={booking.id}
@@ -382,7 +396,7 @@ Si no puede asistir, contactanos por WhatsApp al +53 53357234`;
                                             </div>
                                             <div className="flex items-center gap-2 text-gray-600 col-span-2">
                                                 <i className="icon-user text-amber-500"></i>
-                                                <span>Barbero: {booking.barbero_nombre || booking.trabajador_nombre || 'No asignado'}</span>
+                                                <span>Profesional: {profesional}</span>
                                             </div>
                                         </div>
                                         

@@ -49,6 +49,11 @@ function ProfesionalSelector({ onSelect, selectedProfesional }) {
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <div className="icon-users text-amber-500"></div>
                 2. Elegí tu profesional
+                {selectedProfesional && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full ml-2">
+                        ✓ Profesional seleccionado
+                    </span>
+                )}
             </h2>
             
             {profesionales.length === 0 ? (
@@ -56,7 +61,7 @@ function ProfesionalSelector({ onSelect, selectedProfesional }) {
                     <p className="text-gray-500">No hay profesionales disponibles</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {profesionales.map(prof => (
                         <button
                             key={prof.id}

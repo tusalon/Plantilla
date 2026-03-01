@@ -1,8 +1,8 @@
-// components/admin/ConfigPanel.js - VERSIÓN LIMPIA (SIN DEBUG)
+// components/admin/ConfigPanel.js - Versión genérica
 
-function ConfigPanel({ barberoId, modoRestringido }) {
-    const [barberos, setBarberos] = React.useState([]);
-    const [barberoSeleccionado, setBarberoSeleccionado] = React.useState(null);
+function ConfigPanel({ profesionalId, modoRestringido }) {
+    const [profesionales, setProfesionales] = React.useState([]);
+    const [profesionalSeleccionado, setProfesionalSeleccionado] = React.useState(null);
     const [mostrarEditorPorDia, setMostrarEditorPorDia] = React.useState(false);
     const [configGlobal, setConfigGlobal] = React.useState({
         duracion_turnos: 60,
@@ -11,6 +11,13 @@ function ConfigPanel({ barberoId, modoRestringido }) {
         max_antelacion_dias: 30
     });
     const [cargando, setCargando] = React.useState(true);
+    const [nombreNegocio, setNombreNegocio] = React.useState('');
+
+    React.useEffect(() => {
+        window.getNombreNegocio().then(nombre => {
+            setNombreNegocio(nombre);
+        });
+    }, []);
 
     const opcionesDuracion = [
         { value: 30, label: '30 min', icon: '⏱️' },
@@ -37,22 +44,22 @@ function ConfigPanel({ barberoId, modoRestringido }) {
     }, []);
 
     React.useEffect(() => {
-        if (modoRestringido && barberoId) {
-            setBarberoSeleccionado(barberoId);
+        if (modoRestringido && profesionalId) {
+            setProfesionalSeleccionado(profesionalId);
         }
-    }, [modoRestringido, barberoId]);
+    }, [modoRestringido, profesionalId]);
 
     const cargarDatos = async () => {
         setCargando(true);
         try {
-            // Cargar barberos
-            if (window.salonBarberos) {
-                const lista = await window.salonBarberos.getAll(true);
-                setBarberos(lista || []);
+            // Cargar profesionales
+            if (window.salonProfesionales) {
+                const lista = await window.salonProfesionales.getAll(true);
+                setProfesionales(lista || []);
                 
-                // Seleccionar el primer barbero por defecto si es admin
+                // Seleccionar el primer profesional por defecto si es admin
                 if (!modoRestringido && lista && lista.length > 0) {
-                    setBarberoSeleccionado(lista[0].id);
+                    setProfesionalSeleccionado(lista[0].id);
                 }
             }
             
@@ -74,8 +81,8 @@ function ConfigPanel({ barberoId, modoRestringido }) {
     };
 
     const abrirEditorPorDia = () => {
-        if (!barberoSeleccionado) {
-            alert('Seleccioná un barbero primero');
+        if (!profesionalSeleccionado) {
+            alert('Seleccioná un profesional primero');
             return;
         }
         setMostrarEditorPorDia(true);
@@ -106,7 +113,7 @@ function ConfigPanel({ barberoId, modoRestringido }) {
     return (
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
             <h2 className="text-xl font-bold mb-6">
-                {modoRestringido ? '⚙️ Mi Configuración' : '⚙️ Configuración de la Barbería'}
+                {modoRestringido ? '⚙️ Mi Configuración' : `⚙️ Configuración de ${nombreNegocio}`}
             </h2>
             
             {!modoRestringido && (
@@ -161,7 +168,7 @@ function ConfigPanel({ barberoId, modoRestringido }) {
                         </div>
                     </div>
                     
-                    {/* ANTELACIÓN MÁXIMA */}
+                    {/* Antelación máxima */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Antelación máxima para reservar
@@ -220,37 +227,37 @@ function ConfigPanel({ barberoId, modoRestringido }) {
             {!modoRestringido && (
                 <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Seleccionar Barbero
+                        Seleccionar Profesional
                     </label>
                     <div className="flex gap-2">
                         <select
-                            value={barberoSeleccionado || ''}
-                            onChange={(e) => setBarberoSeleccionado(parseInt(e.target.value))}
+                            value={profesionalSeleccionado || ''}
+                            onChange={(e) => setProfesionalSeleccionado(parseInt(e.target.value))}
                             className="flex-1 border rounded-lg px-3 py-2"
                         >
-                            <option value="">Seleccione un barbero</option>
-                            {barberos.map(b => (
-                                <option key={b.id} value={b.id}>{b.nombre}</option>
+                            <option value="">Seleccione un profesional</option>
+                            {profesionales.map(p => (
+                                <option key={p.id} value={p.id}>{p.nombre}</option>
                             ))}
                         </select>
                         
                         <button
                             onClick={abrirEditorPorDia}
-                            disabled={!barberoSeleccionado}
+                            disabled={!profesionalSeleccionado}
                             className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Configurar horarios por día
                         </button>
                     </div>
-                    {barberos.length === 0 && !cargando && (
+                    {profesionales.length === 0 && !cargando && (
                         <p className="text-sm text-amber-600 mt-2">
-                            ⚠️ No hay barberos activos. Ve a la pestaña "Barberos" para crear uno.
+                            ⚠️ No hay profesionales activos. Ve a la pestaña "Profesionales" para crear uno.
                         </p>
                     )}
                 </div>
             )}
             
-            {modoRestringido && barberoId && (
+            {modoRestringido && profesionalId && (
                 <div className="mb-4">
                     <button
                         onClick={abrirEditorPorDia}
@@ -269,12 +276,12 @@ function ConfigPanel({ barberoId, modoRestringido }) {
             )}
             
             {/* Modal para editor por día */}
-            {mostrarEditorPorDia && barberoSeleccionado && (
+            {mostrarEditorPorDia && profesionalSeleccionado && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
                         <HorariosPorDiaPanel
-                            barberoId={barberoSeleccionado}
-                            barberoNombre={barberos.find(b => b.id === barberoSeleccionado)?.nombre || 'Barbero'}
+                            profesionalId={profesionalSeleccionado}
+                            profesionalNombre={profesionales.find(p => p.id === profesionalSeleccionado)?.nombre || 'Profesional'}
                             onGuardar={(horarios) => {
                                 setMostrarEditorPorDia(false);
                             }}

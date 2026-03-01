@@ -1,4 +1,4 @@
-// utils/whatsapp-helper.js - Helper universal para WhatsApp (funciona con Business)
+// utils/whatsapp-helper.js - Helper universal para WhatsApp
 
 console.log('📱 whatsapp-helper.js cargado');
 
@@ -148,8 +148,8 @@ window.enviarWhatsAppNotificacion = function(telefono, mensaje) {
     return true;
 };
 
-// 🔥 FUNCIÓN ACTUALIZADA: Notificar al cliente aprobado (CON DÍA DE LA SEMANA)
-window.notificarClienteAprobado = function(telefono, nombre) {
+// FUNCIÓN: Notificar al cliente aprobado (CON DÍA DE LA SEMANA)
+window.notificarClienteAprobado = async function(telefono, nombre) {
     // Obtener fecha actual con día de la semana
     const fechaHoy = new Date();
     const fechaStr = `${fechaHoy.getFullYear()}-${(fechaHoy.getMonth()+1).toString().padStart(2,'0')}-${fechaHoy.getDate().toString().padStart(2,'0')}`;
@@ -157,8 +157,10 @@ window.notificarClienteAprobado = function(telefono, nombre) {
         window.formatFechaCompleta(fechaStr) : 
         fechaStr;
     
+    const nombreNegocio = await window.getNombreNegocio();
+    
     const mensaje = 
-`✅ *¡FELICIDADES! Has sido ACEPTADO en LAG.barberia*
+`✅ *¡FELICIDADES! Has sido ACEPTADO en ${nombreNegocio}*
 
 Hola *${nombre}*, nos complace informarte que tu solicitud de acceso ha sido *APROBADA*.
 
@@ -168,60 +170,53 @@ Hola *${nombre}*, nos complace informarte que tu solicitud de acceso ha sido *AP
 • Recibir recordatorios automáticos
 
 📱 *Ingresar ahora mismo:*
-1. Abrir LAG.barberia desde tu celular
+1. Abrir la app desde tu celular
 2. Iniciar sesión con tu número
-3. Elegir servicio, barbero y horario
-
-✂️ *Nivel que se nota*
-
-LAG.barberia - Donde el estilo se encuentra con la calidad
+3. Elegir servicio, profesional y horario
 
 _${fechaConDia}_`;
 
     window.enviarWhatsAppBusiness(telefono, mensaje, true);
 };
 
-// 🔥 FUNCIÓN ACTUALIZADA: Cancelación de turnos (CON DÍA DE LA SEMANA)
-window.notificarCancelacion = function(telefono, nombre, fecha, hora, servicio, barbero) {
+// FUNCIÓN: Cancelación de turnos (CON DÍA DE LA SEMANA)
+window.notificarCancelacion = async function(telefono, nombre, fecha, hora, servicio, profesional) {
     // La fecha puede venir en formato YYYY-MM-DD o ya formateada
-    // Si es YYYY-MM-DD, la convertimos a formato con día
     let fechaConDia = fecha;
     
-    // Verificar si la fecha está en formato YYYY-MM-DD (tiene guiones y son números)
+    // Verificar si la fecha está en formato YYYY-MM-DD
     if (fecha.match(/^\d{4}-\d{2}-\d{2}$/)) {
         fechaConDia = window.formatFechaCompleta ? 
             window.formatFechaCompleta(fecha) : 
             fecha;
     } else if (window.getDiaSemana) {
-        // Si ya tiene formato pero queremos asegurar el día
         const fechaParts = fecha.split(' ');
         if (fechaParts.length > 1) {
-            const fechaNumero = fechaParts[fechaParts.length - 1]; // Última parte debería ser el número
+            const fechaNumero = fechaParts[fechaParts.length - 1];
             if (fechaNumero.match(/^\d{1,2}$/)) {
-                // Ya tiene día de la semana, la dejamos como está
                 fechaConDia = fecha;
             }
         }
     }
     
+    const nombreNegocio = await window.getNombreNegocio();
+    
     const mensaje = 
-`❌ *CANCELACIÓN DE TURNO - LAG.barberia*
+`❌ *CANCELACIÓN DE TURNO*
 
 Hola *${nombre}*, lamentamos informarte que tu turno ha sido cancelado.
 
 📅 *Fecha:* ${fechaConDia}
 ⏰ *Hora:* ${hora}
 💈 *Servicio:* ${servicio}
-👨‍🎨 *Barbero:* ${barbero}
+👨‍🎨 *Profesional:* ${profesional}
 
 🔔 *Motivo:* Cancelación por administración
 
 📱 *¿Quieres reprogramar?*
 Puedes hacerlo desde la app
 
-Disculpe las molestias. Esperamos verte pronto en LAG.barberia ✂️
-
-LAG.barberia - Nivel que se nota`;
+Disculpe las molestias.`;
 
     window.enviarWhatsAppUniversal(telefono, mensaje);
 };

@@ -1,7 +1,5 @@
 // client-app.js - Aplicación de clientes con flujo completo
-// client-app.js - PRINCIPIO DEL ARCHIVO
 
-// 🔥 DETECTOR DE VERSIONES ANTIGUAS
 console.log('🚀 CLIENT-APP.JS VERSIÓN:', '2024-03-01');
 
 window.addEventListener('error', function(e) {
@@ -19,11 +17,12 @@ window.addEventListener('error', function(e) {
         }
     }
 });
+
 function ClientApp() {
     const [step, setStep] = React.useState('auth');
     const [cliente, setCliente] = React.useState(null);
     const [selectedService, setSelectedService] = React.useState(null);
-    const [selectedWorker, setSelectedWorker] = React.useState(null);
+    const [selectedProfesional, setSelectedProfesional] = React.useState(null);
     const [selectedDate, setSelectedDate] = React.useState('');
     const [selectedTime, setSelectedTime] = React.useState('');
     const [bookingConfirmed, setBookingConfirmed] = React.useState(null);
@@ -35,25 +34,23 @@ function ClientApp() {
     // ============================================
     React.useEffect(() => {
         const adminAuth = localStorage.getItem('adminAuth') === 'true';
-        const barberoAuth = localStorage.getItem('barberoAuth');
+        const profesionalAuth = localStorage.getItem('profesionalAuth');
         
-        // Si es admin o barbero, mostrar opción de ir al panel
         if (adminAuth) {
             setUserRol('admin');
-        } else if (barberoAuth) {
-            setUserRol('barbero');
+        } else if (profesionalAuth) {
+            setUserRol('profesional');
             try {
-                const barbero = JSON.parse(barberoAuth);
+                const profesional = JSON.parse(profesionalAuth);
                 setCliente({
-                    nombre: barbero.nombre,
-                    whatsapp: barbero.telefono
+                    nombre: profesional.nombre,
+                    whatsapp: profesional.telefono
                 });
             } catch (e) {}
         }
         
-        // Si es cliente autorizado, ir a welcome
         const savedCliente = localStorage.getItem('clienteAuth');
-        if (savedCliente && !adminAuth && !barberoAuth) {
+        if (savedCliente && !adminAuth && !profesionalAuth) {
             try {
                 const clienteData = JSON.parse(savedCliente);
                 setCliente(clienteData);
@@ -106,7 +103,7 @@ function ClientApp() {
     React.useEffect(() => {
         if (selectedService) {
             setTimeout(() => {
-                document.getElementById('worker-section')?.scrollIntoView({ 
+                document.getElementById('profesional-section')?.scrollIntoView({ 
                     behavior: 'smooth', 
                     block: 'center' 
                 });
@@ -115,7 +112,7 @@ function ClientApp() {
     }, [selectedService]);
 
     React.useEffect(() => {
-        if (selectedWorker) {
+        if (selectedProfesional) {
             setTimeout(() => {
                 document.getElementById('calendar-section')?.scrollIntoView({ 
                     behavior: 'smooth', 
@@ -123,7 +120,7 @@ function ClientApp() {
                 });
             }, 300);
         }
-    }, [selectedWorker]);
+    }, [selectedProfesional]);
 
     React.useEffect(() => {
         if (selectedDate) {
@@ -155,7 +152,7 @@ function ClientApp() {
         localStorage.removeItem('clienteAuth');
         setCliente(null);
         setSelectedService(null);
-        setSelectedWorker(null);
+        setSelectedProfesional(null);
         setSelectedDate('');
         setSelectedTime('');
         setUserRol('cliente');
@@ -165,7 +162,7 @@ function ClientApp() {
 
     const resetBooking = () => {
         setSelectedService(null);
-        setSelectedWorker(null);
+        setSelectedProfesional(null);
         setSelectedDate('');
         setSelectedTime('');
         setStep('service');
@@ -230,45 +227,45 @@ function ClientApp() {
                                 selectedService={selectedService}
                             />
                             
-                            {/* SECCIÓN 2: BARBEROS (con id para scroll) */}
+                            {/* SECCIÓN 2: PROFESIONALES */}
                             {selectedService && (
-                                <div id="worker-section">
-                                    <WorkerSelector 
-                                        onSelect={setSelectedWorker} 
-                                        selectedWorker={selectedWorker}
+                                <div id="profesional-section">
+                                    <ProfesionalSelector 
+                                        onSelect={setSelectedProfesional} 
+                                        selectedProfesional={selectedProfesional}
                                     />
                                 </div>
                             )}
                             
-                            {/* SECCIÓN 3: CALENDARIO (con id para scroll) */}
-                            {selectedWorker && (
+                            {/* SECCIÓN 3: CALENDARIO */}
+                            {selectedProfesional && (
                                 <div id="calendar-section">
                                     <Calendar 
                                         onDateSelect={setSelectedDate} 
                                         selectedDate={selectedDate}
-                                        worker={selectedWorker}
+                                        profesional={selectedProfesional}
                                     />
                                 </div>
                             )}
                             
-                            {/* SECCIÓN 4: HORARIOS (con id para scroll) */}
+                            {/* SECCIÓN 4: HORARIOS */}
                             {selectedDate && (
                                 <div id="time-section">
                                     <TimeSlots 
                                         service={selectedService}
                                         date={selectedDate}
-                                        worker={selectedWorker}
+                                        profesional={selectedProfesional}
                                         onTimeSelect={setSelectedTime}
                                         selectedTime={selectedTime}
                                     />
                                 </div>
                             )}
                             
-                            {/* SECCIÓN 5: CONFIRMACIÓN (cuando se selecciona hora) */}
+                            {/* SECCIÓN 5: CONFIRMACIÓN */}
                             {selectedTime && (
                                 <BookingForm
                                     service={selectedService}
-                                    worker={selectedWorker}
+                                    profesional={selectedProfesional}
                                     date={selectedDate}
                                     time={selectedTime}
                                     cliente={cliente}

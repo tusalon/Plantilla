@@ -1,6 +1,6 @@
-// components/BookingForm.js - VERSIÓN CORREGIDA PARA LAG.barberia
+// components/BookingForm.js - Versión genérica
 
-function BookingForm({ service, worker, date, time, onSubmit, onCancel, cliente }) {
+function BookingForm({ service, profesional, date, time, onSubmit, onCancel, cliente }) {
     const [submitting, setSubmitting] = React.useState(false);
     const [error, setError] = React.useState(null);
 
@@ -11,7 +11,7 @@ function BookingForm({ service, worker, date, time, onSubmit, onCancel, cliente 
 
         try {
             // Verificar disponibilidad actualizada
-            const bookings = await getBookingsByDateAndWorker(date, worker.id);
+            const bookings = await getBookingsByDateAndWorker(date, profesional.id);
             const baseSlots = [time];
             const available = filterAvailableSlots(baseSlots, service.duracion, bookings);
 
@@ -28,8 +28,8 @@ function BookingForm({ service, worker, date, time, onSubmit, onCancel, cliente 
                 cliente_whatsapp: cliente.whatsapp,
                 servicio: service.nombre,
                 duracion: service.duracion,
-                trabajador_id: worker.id,
-                trabajador_nombre: worker.nombre,
+                profesional_id: profesional.id,
+                profesional_nombre: profesional.nombre,
                 fecha: date,
                 hora_inicio: time,
                 hora_fin: endTime,
@@ -59,7 +59,7 @@ function BookingForm({ service, worker, date, time, onSubmit, onCancel, cliente 
                 </div>
 
                 <div className="space-y-4">
-                    {/* Resumen del turno - ACTUALIZADO con colores ámbar */}
+                    {/* Resumen del turno */}
                     <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-2">
                         <div className="flex items-center gap-3 text-gray-700">
                             <i className="icon-scissors text-amber-500"></i>
@@ -68,7 +68,7 @@ function BookingForm({ service, worker, date, time, onSubmit, onCancel, cliente 
                         
                         <div className="flex items-center gap-3 text-gray-700">
                             <i className="icon-users text-amber-500"></i>
-                            <span>Con: <strong>{worker.nombre}</strong></span>
+                            <span>Con: <strong>{profesional.nombre}</strong></span>
                         </div>
                         
                         <div className="flex items-center gap-3 text-gray-700">

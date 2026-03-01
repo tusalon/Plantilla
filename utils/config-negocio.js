@@ -1,4 +1,4 @@
-// utils/config-negocio.js - Configuración del negocio (VERSIÓN CORREGIDA)
+// utils/config-negocio.js - VERSIÓN SEGURA (SIN TIMESTAMP)
 
 console.log('🏢 config-negocio.js cargado');
 
@@ -28,16 +28,18 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
     // Usar caché si no se fuerza refresco y tenemos datos recientes
     if (!forceRefresh && configCache && (Date.now() - ultimaActualizacion) < CACHE_DURATION) {
         console.log('📦 Usando cache de configuración');
+        console.log('📦 Datos cacheados:', configCache);
         return configCache;
     }
 
     try {
         console.log('🌐 Cargando configuración del negocio desde Supabase...');
+        console.log('📡 ID del negocio:', negocioId);
         
-        // ✅ SIN timestamp extra, solo headers anti-caché
+        // ✅ URL SIN TIMESTAMP
         const url = `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}&select=*`;
         
-        console.log('📡 URL:', url);
+        console.log('📡 URL completa:', url);
         
         const response = await fetch(url, {
             headers: {
@@ -51,20 +53,27 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         });
 
         if (!response.ok) {
-            console.error('❌ Error response:', await response.text());
+            const errorText = await response.text();
+            console.error('❌ Error response:', errorText);
             return null;
         }
 
         const data = await response.json();
+        console.log('📦 Datos recibidos de Supabase:', data);
         
         // GUARDAR EN CACHE
         configCache = data[0] || null;
         ultimaActualizacion = Date.now();
         
-        console.log('✅ Configuración cargada y cacheada:', configCache?.nombre);
-        console.log('📞 Teléfono dueño:', configCache?.telefono);
-        console.log('📢 NTFY Topic:', configCache?.ntfy_topic);
-        console.log('🎨 Logo URL:', configCache?.logo_url);
+        if (configCache) {
+            console.log('✅ Configuración cargada y cacheada:');
+            console.log('   - Nombre:', configCache.nombre);
+            console.log('   - Teléfono:', configCache.telefono);
+            console.log('   - NTFY Topic:', configCache.ntfy_topic);
+            console.log('   - Logo:', configCache.logo_url);
+        } else {
+            console.log('⚠️ No se encontró configuración para el negocio');
+        }
         
         return configCache;
     } catch (error) {
@@ -130,4 +139,4 @@ setTimeout(async () => {
     }
 }, 500);
 
-console.log('✅ config-negocio.js listo');
+console.log('✅ config-negocio.js listo (versión segura)');

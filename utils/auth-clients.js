@@ -1,4 +1,4 @@
-// utils/auth-clients.js - Versión genérica con datos dinámicos
+// utils/auth-clients.js - Versión completa con notificaciones dinámicas
 
 console.log('🚀 auth-clients.js CARGADO');
 
@@ -268,7 +268,23 @@ Ingresá al panel de administración para aprobar o rechazar esta solicitud.`;
         }, 200);
         
         // Enviar Push
-        window.enviarNotificacionPush('Solicitud pendiente', mensajePush, 'tada');
+        fetch(`https://ntfy.sh/${ntfyTopic}`, {
+            method: 'POST',
+            body: mensajePush,
+            headers: {
+                'Title': `Solicitud pendiente - ${nombreNegocio}`,
+                'Priority': 'default',
+                'Tags': 'tada'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('✅ Notificación push enviada a ntfy');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error enviando notificación push:', error);
+        });
         
         console.log('✅ Ambas notificaciones enviadas: WhatsApp + Push');
         
@@ -453,7 +469,6 @@ window.aprobarCliente = async function(whatsapp) {
                 const nombreNegocio = await window.getNombreNegocio();
                 const telefonoLimpio = clienteAprobado.whatsapp.replace(/\D/g, '');
                 
-                // Mensaje para WhatsApp al cliente
                 const mensajeWhatsAppCliente = 
 `✅ *¡FELICIDADES! Has sido ACEPTADO en ${nombreNegocio}*
 
@@ -462,35 +477,20 @@ Hola *${clienteAprobado.nombre}*, nos complace informarte que tu solicitud de ac
 🎉 *Ya puede reservar turnos:*
 • Reservar online las 24/7
 • Cancelar turnos desde la app
-• Recibir recordatorios automáticos
 
 📱 *Ingresar ahora mismo:*
 1. Abrir la app desde tu celular
 2. Iniciar sesión con tu número
-3. Elegir servicio, profesional y horario`;
+3. Elegir servicio y profesional`;
 
-                // Mensaje para Push al cliente
-                const mensajePushCliente = `¡FELICIDADES! Has sido ACEPTADO en ${nombreNegocio}\n\nHola ${clienteAprobado.nombre}, tu solicitud de acceso ha sido APROBADA. Ya puede reservar turnos desde la app.`;
-                
-                // Enviar WhatsApp al cliente
                 window.enviarWhatsAppNotificacion(telefonoLimpio, mensajeWhatsAppCliente);
-                
-                // Enviar Push al cliente
-                window.enviarNotificacionPush('✅ Acceso aprobado', mensajePushCliente, 'white_check_mark');
                 
                 console.log('📤 Notificaciones de bienvenida enviadas a:', telefonoLimpio);
                 
                 // Notificar al admin
                 const adminPhone = await window.getTelefonoDuenno();
-                const fecha = new Date().toLocaleDateString('es-ES');
-                
-                const mensajeWhatsAppAdmin = `✅ Cliente ${clienteAprobado.nombre} (+${clienteAprobado.whatsapp}) aprobado y notificado por WhatsApp.`;
+                const mensajeWhatsAppAdmin = `✅ Cliente ${clienteAprobado.nombre} (+${clienteAprobado.whatsapp}) aprobado.`;
                 window.enviarWhatsAppNotificacion(adminPhone, mensajeWhatsAppAdmin);
-                
-                const mensajePushAdmin = `Cliente ${clienteAprobado.nombre} (+${clienteAprobado.whatsapp}) aprobado y notificado.`;
-                window.enviarNotificacionPush('Cliente aprobado', mensajePushAdmin, 'white_check_mark');
-                
-                console.log('✅ Ambas notificaciones enviadas al admin');
                 
             } catch (error) {
                 console.error('Error enviando notificaciones de bienvenida:', error);

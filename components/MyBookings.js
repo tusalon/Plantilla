@@ -1,4 +1,4 @@
-// components/MyBookings.js - Versión femenina
+// components/MyBookings.js - Versión con notificaciones dinámicas
 
 function MyBookings({ cliente, onVolver }) {
     const [bookings, setBookings] = React.useState([]);
@@ -16,12 +16,17 @@ function MyBookings({ cliente, onVolver }) {
     }, []);
 
     const cargarDatosNegocio = async () => {
-        const tel = await window.getTelefonoDuenno();
-        const nombre = await window.getNombreNegocio();
-        const topic = await window.getNtfyTopic();
-        setTelefonoDuenno(tel);
-        setNombreNegocio(nombre);
-        setNtfyTopic(topic);
+        try {
+            const tel = await window.getTelefonoDuenno();
+            const nombre = await window.getNombreNegocio();
+            const topic = await window.getNtfyTopic();
+            setTelefonoDuenno(tel);
+            setNombreNegocio(nombre);
+            setNtfyTopic(topic);
+            console.log('✅ Datos de notificación cargados en MyBookings:', { tel, nombre, topic });
+        } catch (error) {
+            console.error('Error cargando datos de negocio:', error);
+        }
     };
 
     const cargarReservas = async () => {
@@ -64,13 +69,6 @@ function MyBookings({ cliente, onVolver }) {
             const fechaTurno = new Date(year, month - 1, day, hours, minutes, 0);
             const diffMs = fechaTurno - ahora;
             const diffMinutos = Math.floor(diffMs / (1000 * 60));
-            
-            console.log('🕐 Verificando cancelación:', {
-                ahora: ahora.toLocaleString(),
-                turno: fechaTurno.toLocaleString(),
-                diffMinutos,
-                puede: diffMinutos > 60
-            });
             
             return diffMinutos > 60;
             
@@ -143,7 +141,7 @@ El cliente canceló su turno desde la app.`;
                 document.body.removeChild(link);
             }, 200);
             
-            console.log('✅ WhatsApp de cancelación enviado');
+            console.log('✅ WhatsApp de cancelación enviado a:', telefonoLimpio);
         } catch (error) {
             console.error('Error enviando WhatsApp:', error);
         }
@@ -170,10 +168,24 @@ Profesional: ${profesional}
 
 El cliente canceló su turno desde la app.`;
 
-            if (window.enviarNotificacionPush) {
-                window.enviarNotificacionPush(`Cancelación - ${nombreNegocio}`, mensajePush, 'x');
-                console.log('✅ Push de cancelación enviado');
-            }
+            fetch(`https://ntfy.sh/${ntfyTopic}`, {
+                method: 'POST',
+                body: mensajePush,
+                headers: {
+                    'Title': `Cancelación - ${nombreNegocio}`,
+                    'Priority': 'default',
+                    'Tags': 'x'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ Push de cancelación enviado a:', ntfyTopic);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error enviando notificación push:', error);
+            });
+            
         } catch (error) {
             console.error('Error enviando Push:', error);
         }

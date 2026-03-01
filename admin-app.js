@@ -970,54 +970,50 @@ El administrador cancelo la reserva.`;
         <div className="min-h-screen bg-gray-100 p-3 sm:p-6">
             <div className="max-w-6xl mx-auto space-y-4">
                 
-                {/* HEADER */}
-                <div className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center flex-wrap gap-2">
-                    <div>
-                        <h1 className="text-xl font-bold">
-                            {userRole === 'profesional' 
-                                ? `Panel de ${profesional?.nombre}`
-                                : `Panel Admin - ${nombreNegocio}`
-                            }
-                        </h1>
-                        {userRole === 'profesional' && (
-                            <p className="text-xs mt-1">
-                                <span className={`px-2 py-0.5 rounded-full ${
-                                    userNivel === 1 ? 'bg-gray-100 text-gray-600' :
-                                    userNivel === 2 ? 'bg-blue-100 text-blue-600' :
-                                    'bg-purple-100 text-purple-600'
-                                }`}>
-                                    {userNivel === 1 && '🔰 Nivel Básico'}
-                                    {userNivel === 2 && '⭐ Nivel Intermedio'}
-                                    {userNivel === 3 && '👑 Nivel Avanzado'}
-                                </span>
-                            </p>
-                        )}
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={abrirModalNuevaReserva}
-                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition transform hover:scale-105 shadow-md"
-                            title="Crear reserva para un cliente"
-                        >
-                            <span>📅</span>
-                            <span className="hidden sm:inline">Nueva Reserva</span>
-                        </button>
-                        <button 
-                            onClick={fetchBookings} 
-                            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
-                            title="Actualizar"
-                        >
-                            🔄
-                        </button>
-                        <button 
-                            onClick={handleLogout}
-                            className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition"
-                            title="Cerrar sesión"
-                        >
-                            🚪
-                        </button>
-                    </div>
-                </div>
+               {/* ===== HEADER MEJORADO ===== */}
+<div className="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    {/* Título y logo */}
+    <div className="flex items-center gap-3">
+        <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform">
+            <i className="icon-scissors text-2xl text-white"></i>
+        </div>
+        <div>
+            <h1 className="text-xl font-bold text-gray-800">BennetSalón</h1>
+            <p className="text-xs text-gray-500">Panel de Administración</p>
+        </div>
+    </div>
+
+    {/* Botones de acción */}
+    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        {/* Botón Editar Negocio (destacado) */}
+        <button
+            onClick={() => window.location.href = 'editar-negocio.html'}
+            className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105 shadow-md border border-amber-400 flex-1 sm:flex-none justify-center"
+            title="Editar configuración del negocio"
+        >
+            <i className="icon-building text-lg"></i>
+            <span className="font-medium">Editar Negocio</span>
+        </button>
+
+        {/* Botón Actualizar */}
+        <button 
+            onClick={fetchBookings} 
+            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-all hover:scale-105 border border-gray-200"
+            title="Actualizar datos"
+        >
+            <i className="icon-refresh-cw text-gray-600"></i>
+        </button>
+
+        {/* Botón Cerrar Sesión */}
+        <button 
+            onClick={handleLogout}
+            className="p-2 bg-red-50 rounded-full hover:bg-red-100 transition-all hover:scale-105 border border-red-200"
+            title="Cerrar sesión"
+        >
+            <i className="icon-log-out text-red-600"></i>
+        </button>
+    </div>
+</div>
 
                 {/* MODAL NUEVA RESERVA */}
                 {showNuevaReservaModal && (

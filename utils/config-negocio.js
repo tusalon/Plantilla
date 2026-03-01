@@ -1,4 +1,4 @@
-// utils/config-negocio.js - Configuración del negocio (CON CACHÉ CONTROLADO)
+// utils/config-negocio.js - Configuración del negocio (VERSIÓN CORREGIDA)
 
 console.log('🏢 config-negocio.js cargado');
 
@@ -34,8 +34,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
     try {
         console.log('🌐 Cargando configuración del negocio desde Supabase...');
         
-        // Añadir timestamp para evitar caché HTTP
-        const timestamp = Date.now();
+        // ✅ SIN timestamp extra, solo headers anti-caché
         const url = `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}&select=*`;
         
         console.log('📡 URL:', url);
@@ -44,8 +43,11 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
             headers: {
                 'apikey': window.SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                'Cache-Control': 'no-cache'
-            }
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            },
+            cache: 'no-store' // Importante: no cachear la respuesta
         });
 
         if (!response.ok) {

@@ -26,7 +26,10 @@ function EditarNegocio() {
     // Cargar datos al iniciar
     React.useEffect(() => {
         const id = localStorage.getItem('negocioId');
+        console.log('📌 negocioId desde localStorage:', id);
+        
         if (!id) {
+            console.log('🚫 No hay negocioId, redirigiendo a login');
             window.location.href = 'admin-login.html';
             return;
         }
@@ -36,8 +39,11 @@ function EditarNegocio() {
 
     const cargarDatos = async (id) => {
         try {
+            console.log('📥 Cargando configuración del negocio...');
             const configData = await window.cargarConfiguracionNegocio(true);
+            
             if (configData) {
+                console.log('✅ Datos cargados:', configData);
                 setConfig({
                     nombre: configData.nombre || '',
                     telefono: configData.telefono || '',
@@ -56,7 +62,7 @@ function EditarNegocio() {
                 });
             }
         } catch (error) {
-            console.error('Error cargando datos:', error);
+            console.error('❌ Error cargando datos:', error);
             setError('Error al cargar los datos');
         } finally {
             setCargando(false);
@@ -93,6 +99,8 @@ function EditarNegocio() {
             const fileExt = config.logo_file.name.split('.').pop();
             const fileName = `logo-${negocioId}-${Date.now()}.${fileExt}`;
             
+            console.log('📤 Subiendo logo:', fileName);
+            
             const response = await fetch(
                 `${window.SUPABASE_URL}/storage/v1/object/negocios-logos/${fileName}`,
                 {
@@ -106,13 +114,16 @@ function EditarNegocio() {
             );
             
             if (!response.ok) {
-                console.error('Error subiendo logo');
+                const error = await response.text();
+                console.error('❌ Error subiendo logo:', error);
                 return config.logo_url;
             }
             
-            return `${window.SUPABASE_URL}/storage/v1/object/public/negocios-logos/${fileName}`;
+            const publicUrl = `${window.SUPABASE_URL}/storage/v1/object/public/negocios-logos/${fileName}`;
+            console.log('✅ Logo subido:', publicUrl);
+            return publicUrl;
         } catch (error) {
-            console.error('Error:', error);
+            console.error('❌ Error en subirLogo:', error);
             return config.logo_url;
         }
     };
@@ -122,8 +133,22 @@ function EditarNegocio() {
         setError('');
         
         try {
-            const logo_url = await subirLogo();
+            console.log('🔍 Verificando negocioId:', negocioId);
             
+            if (!negocioId) {
+                throw new Error('No hay ID de negocio. Por favor, iniciá sesión nuevamente.');
+            }
+
+            // Subir logo si hay uno nuevo
+            let logo_url = config.logo_url;
+            if (config.logo_file) {
+                const nuevaLogoUrl = await subirLogo();
+                if (nuevaLogoUrl) {
+                    logo_url = nuevaLogoUrl;
+                }
+            }
+            
+            // Preparar todos los datos para actualizar
             const datosActualizar = {
                 nombre: config.nombre,
                 telefono: config.telefono,
@@ -140,23 +165,30 @@ function EditarNegocio() {
                 updated_at: new Date().toISOString()
             };
 
-            const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}`,
-                {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': window.SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify(datosActualizar)
-                }
-            );
+            console.log('📤 Enviando datos completos:', datosActualizar);
+            
+            const url = `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}`;
+            console.log('🔗 URL:', url);
+            
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': window.SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                },
+                body: JSON.stringify(datosActualizar)
+            });
             
             if (!response.ok) {
-                throw new Error('Error guardando configuración');
+                const errorText = await response.text();
+                console.error('❌ Error response:', errorText);
+                throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
             }
+            
+            const data = await response.json();
+            console.log('✅ Datos guardados:', data);
             
             setExito(true);
             setTimeout(() => {
@@ -164,8 +196,8 @@ function EditarNegocio() {
             }, 2000);
             
         } catch (error) {
-            console.error('Error:', error);
-            setError('Error al guardar la configuración');
+            console.error('❌ Error completo:', error);
+            setError(`Error al guardar: ${error.message}`);
         } finally {
             setGuardando(false);
         }
@@ -485,5 +517,6 @@ function EditarNegocio() {
     );
 }
 
+// Renderizar
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<EditarNegocio />);

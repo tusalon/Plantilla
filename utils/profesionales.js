@@ -1,15 +1,26 @@
-// utils/profesionales.js - Gestión de profesionales
+// utils/profesionales.js - Versión con getNegocioId()
 
 console.log('👥 profesionales.js cargado');
 
+// Helper para obtener negocio_id
+function getNegocioId() {
+    if (window.getNegocioId) {
+        return window.getNegocioId();
+    }
+    return localStorage.getItem('negocioId');
+}
+
 let profesionalesCache = [];
-let ultimaActualizacionProfesionales = 0; // 👈 NOMBRE ÚNICO
-const CACHE_DURATION_PROFESIONALES = 5 * 60 * 1000; // 👈 NOMBRE ÚNICO
+let ultimaActualizacionProfesionales = 0;
+const CACHE_DURATION_PROFESIONALES = 5 * 60 * 1000;
 
 async function cargarProfesionalesDesdeDB() {
     try {
+        const negocioId = getNegocioId();
+        console.log('🌐 Cargando profesionales desde Supabase para negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/profesionales?select=*&order=id.asc`,
+            `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&select=*&order=id.asc`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -23,7 +34,7 @@ async function cargarProfesionalesDesdeDB() {
         
         const data = await response.json();
         profesionalesCache = data;
-        ultimaActualizacionProfesionales = Date.now(); // 👈 ACTUALIZADO
+        ultimaActualizacionProfesionales = Date.now();
         return data;
     } catch (error) {
         console.error('Error cargando profesionales:', error);
@@ -33,7 +44,6 @@ async function cargarProfesionalesDesdeDB() {
 
 window.salonProfesionales = {
     getAll: async function(activos = true) {
-        // 👈 USAR LAS NUEVAS VARIABLES
         if (Date.now() - ultimaActualizacionProfesionales < CACHE_DURATION_PROFESIONALES && profesionalesCache.length > 0) {
             if (activos) {
                 return profesionalesCache.filter(p => p.activo === true);
@@ -53,8 +63,9 @@ window.salonProfesionales = {
     
     getById: async function(id) {
         try {
+            const negocioId = getNegocioId();
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/profesionales?id=eq.${id}&select=*`,
+                `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&id=eq.${id}&select=*`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -74,6 +85,9 @@ window.salonProfesionales = {
     
     crear: async function(profesional) {
         try {
+            const negocioId = getNegocioId();
+            console.log('➕ Creando profesional para negocio:', negocioId);
+            
             const response = await fetch(
                 `${window.SUPABASE_URL}/rest/v1/profesionales`,
                 {
@@ -85,6 +99,7 @@ window.salonProfesionales = {
                         'Prefer': 'return=representation'
                     },
                     body: JSON.stringify({
+                        negocio_id: negocioId,  // ← AGREGADO
                         nombre: profesional.nombre,
                         especialidad: profesional.especialidad,
                         color: profesional.color || 'bg-amber-600',
@@ -115,8 +130,11 @@ window.salonProfesionales = {
     
     actualizar: async function(id, cambios) {
         try {
+            const negocioId = getNegocioId();
+            console.log('✏️ Actualizando profesional:', id, 'negocio:', negocioId);
+            
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/profesionales?id=eq.${id}`,
+                `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&id=eq.${id}`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -147,8 +165,11 @@ window.salonProfesionales = {
     
     eliminar: async function(id) {
         try {
+            const negocioId = getNegocioId();
+            console.log('🗑️ Eliminando profesional:', id, 'negocio:', negocioId);
+            
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/profesionales?id=eq.${id}`,
+                `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&id=eq.${id}`,
                 {
                     method: 'DELETE',
                     headers: {

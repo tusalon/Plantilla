@@ -1,6 +1,14 @@
-// utils/auth-clients.js - Versión completa con notificaciones dinámicas
+// utils/auth-clients.js - Versión con getNegocioId()
 
 console.log('🚀 auth-clients.js CARGADO');
+
+// Helper para obtener negocio_id
+function getNegocioId() {
+    if (window.getNegocioId) {
+        return window.getNegocioId();
+    }
+    return localStorage.getItem('negocioId');
+}
 
 // ============================================
 // FUNCIONES CON SUPABASE
@@ -9,9 +17,11 @@ console.log('🚀 auth-clients.js CARGADO');
 // Verificar si un cliente está autorizado
 window.verificarAccesoCliente = async function(whatsapp) {
     try {
-        console.log('🔍 Verificando acceso para:', whatsapp);
+        const negocioId = getNegocioId();
+        console.log('🔍 Verificando acceso para:', whatsapp, 'negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?whatsapp=eq.${whatsapp}&select=*`,
+            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${negocioId}&whatsapp=eq.${whatsapp}&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -44,9 +54,11 @@ window.isClienteAutorizado = async function(whatsapp) {
 // FUNCIÓN: Obtener el estado de la solicitud si existe
 window.obtenerEstadoSolicitud = async function(whatsapp) {
     try {
-        console.log('🔍 Obteniendo estado de solicitud para:', whatsapp);
+        const negocioId = getNegocioId();
+        console.log('🔍 Obteniendo estado de solicitud para:', whatsapp, 'negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?whatsapp=eq.${whatsapp}&select=estado,id`,
+            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?negocio_id=eq.${negocioId}&whatsapp=eq.${whatsapp}&select=estado,id`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -98,51 +110,13 @@ window.enviarWhatsAppNotificacion = function(telefono, mensaje) {
     }
 };
 
-// FUNCIÓN PARA ENVIAR NOTIFICACIÓN PUSH (ntfy.sh)
-window.enviarNotificacionPush = async function(titulo, mensaje, etiqueta = 'tada') {
-    try {
-        console.log('📤 Enviando notificación push a ntfy.sh');
-        
-        const ntfyTopic = await window.getNtfyTopic();
-        if (!ntfyTopic) {
-            console.error('❌ No hay tópico ntfy configurado');
-            return;
-        }
-        
-        // Eliminar emojis y caracteres especiales para ntfy
-        const mensajeLimpio = mensaje.replace(/[🆕✅❌📱👤💈📅⏰👨‍🎨🔔✂️]/g, '').trim();
-        const tituloLimpio = titulo.replace(/[🆕✅❌📱👤💈📅⏰👨‍🎨🔔✂️]/g, '').trim();
-        
-        fetch(`https://ntfy.sh/${ntfyTopic}`, {
-            method: 'POST',
-            body: mensajeLimpio,
-            headers: {
-                'Title': tituloLimpio || 'Notificación',
-                'Priority': 'default',
-                'Tags': etiqueta
-            }
-        })
-        .then(response => {
-            if (response.ok) {
-                console.log('✅ Notificación push enviada a ntfy:', ntfyTopic);
-            } else {
-                console.error('❌ Error en respuesta ntfy:', response.status);
-            }
-        })
-        .catch(error => {
-            console.error('❌ Error enviando notificación push:', error);
-        });
-        
-    } catch (error) {
-        console.error('Error enviando notificación push:', error);
-    }
-};
-
 // FUNCIÓN PRINCIPAL: Agregar cliente pendiente
 window.agregarClientePendiente = async function(nombre, whatsapp) {
     console.log('➕ Agregando cliente pendiente:', { nombre, whatsapp });
     
     try {
+        const negocioId = getNegocioId();
+        
         const autorizado = await window.verificarAccesoCliente(whatsapp);
         if (autorizado) {
             console.log('❌ Cliente ya está autorizado');
@@ -171,7 +145,7 @@ window.agregarClientePendiente = async function(nombre, whatsapp) {
                 console.log('🔄 Cliente estaba rechazado, eliminando solicitud anterior...');
                 
                 await fetch(
-                    `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?id=eq.${estadoSolicitud.id}`,
+                    `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?negocio_id=eq.${negocioId}&id=eq.${estadoSolicitud.id}`,
                     {
                         method: 'DELETE',
                         headers: {
@@ -199,6 +173,7 @@ window.agregarClientePendiente = async function(nombre, whatsapp) {
                     'Prefer': 'return=representation'
                 },
                 body: JSON.stringify({
+                    negocio_id: negocioId,  // ← AGREGADO
                     nombre: nombre,
                     whatsapp: whatsapp,
                     estado: 'pendiente',
@@ -222,16 +197,12 @@ window.agregarClientePendiente = async function(nombre, whatsapp) {
         const newSolicitud = await response.json();
         console.log('✅ Solicitud creada:', newSolicitud);
         
-        // Obtener datos del negocio para notificaciones (SIEMPRE FRESCOS)
+        // Obtener datos del negocio para notificaciones
         const nombreNegocio = await window.getNombreNegocio();
         const adminPhone = await window.getTelefonoDuenno();
         const ntfyTopic = await window.getNtfyTopic();
         
-        console.log('📱 Datos para notificaciones:', { 
-            negocio: nombreNegocio, 
-            adminPhone, 
-            ntfyTopic 
-        });
+        console.log('📱 Datos para notificaciones:', { negocio: nombreNegocio, adminPhone, ntfyTopic });
         
         const fecha = new Date().toLocaleDateString('es-ES', { 
             weekday: 'long', 
@@ -251,8 +222,7 @@ window.agregarClientePendiente = async function(nombre, whatsapp) {
 
 📅 *Fecha:* ${fecha}
 
-🔔 *Acción requerida:*
-Ingresá al panel de administración para aprobar o rechazar esta solicitud.`;
+🔔 *Acción requerida:* Ingresá al panel de administración para aprobar o rechazar esta solicitud.`;
 
         // Mensaje para Push
         const mensajePush = `NUEVA SOLICITUD DE ACCESO\n\nNombre: ${nombre}\nWhatsApp: +${whatsapp.replace('53', '')}\nFecha: ${fecha}`;
@@ -307,9 +277,11 @@ Ingresá al panel de administración para aprobar o rechazar esta solicitud.`;
 // Verificar si tiene solicitud PENDIENTE
 window.isClientePendiente = async function(whatsapp) {
     try {
-        console.log('🔍 Verificando pendiente para:', whatsapp);
+        const negocioId = getNegocioId();
+        console.log('🔍 Verificando pendiente para:', whatsapp, 'negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?whatsapp=eq.${whatsapp}&estado=eq.pendiente&select=*`,
+            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?negocio_id=eq.${negocioId}&whatsapp=eq.${whatsapp}&estado=eq.pendiente&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -333,9 +305,11 @@ window.isClientePendiente = async function(whatsapp) {
 // Obtener todas las solicitudes pendientes
 window.getClientesPendientes = async function() {
     try {
-        console.log('📋 Obteniendo solicitudes pendientes...');
+        const negocioId = getNegocioId();
+        console.log('📋 Obteniendo solicitudes pendientes para negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?estado=eq.pendiente&order=fecha_solicitud.desc`,
+            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?negocio_id=eq.${negocioId}&estado=eq.pendiente&order=fecha_solicitud.desc`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -362,9 +336,11 @@ window.getClientesPendientes = async function() {
 // Obtener todos los clientes autorizados
 window.getClientesAutorizados = async function() {
     try {
-        console.log('📋 Obteniendo clientes autorizados...');
+        const negocioId = getNegocioId();
+        console.log('📋 Obteniendo clientes autorizados para negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?order=fecha_aprobacion.desc`,
+            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${negocioId}&order=fecha_aprobacion.desc`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -393,8 +369,10 @@ window.aprobarCliente = async function(whatsapp) {
     console.log('✅ Aprobando cliente:', whatsapp);
     
     try {
+        const negocioId = getNegocioId();
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?whatsapp=eq.${whatsapp}&estado=eq.pendiente&select=*`,
+            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?negocio_id=eq.${negocioId}&whatsapp=eq.${whatsapp}&estado=eq.pendiente&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -422,6 +400,7 @@ window.aprobarCliente = async function(whatsapp) {
                     'Prefer': 'return=representation'
                 },
                 body: JSON.stringify({
+                    negocio_id: negocioId,  // ← AGREGADO
                     nombre: solicitud.nombre,
                     whatsapp: solicitud.whatsapp
                 })
@@ -438,7 +417,7 @@ window.aprobarCliente = async function(whatsapp) {
         }
         
         const deleteResponse = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?id=eq.${solicitud.id}`,
+            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?negocio_id=eq.${negocioId}&id=eq.${solicitud.id}`,
             {
                 method: 'DELETE',
                 headers: {
@@ -456,7 +435,7 @@ window.aprobarCliente = async function(whatsapp) {
         }
         
         const getResponse = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?whatsapp=eq.${whatsapp}&select=*`,
+            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${negocioId}&whatsapp=eq.${whatsapp}&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -518,8 +497,10 @@ window.rechazarCliente = async function(whatsapp) {
     console.log('❌ Rechazando cliente:', whatsapp);
     
     try {
+        const negocioId = getNegocioId();
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?whatsapp=eq.${whatsapp}&estado=eq.pendiente&select=id`,
+            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?negocio_id=eq.${negocioId}&whatsapp=eq.${whatsapp}&estado=eq.pendiente&select=id`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -537,7 +518,7 @@ window.rechazarCliente = async function(whatsapp) {
         const solicitud = solicitudes[0];
         
         const deleteResponse = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?id=eq.${solicitud.id}`,
+            `${window.SUPABASE_URL}/rest/v1/cliente_solicitudes?negocio_id=eq.${negocioId}&id=eq.${solicitud.id}`,
             {
                 method: 'DELETE',
                 headers: {
@@ -567,8 +548,10 @@ window.eliminarClienteAutorizado = async function(whatsapp) {
     console.log('🗑️ Eliminando cliente autorizado:', whatsapp);
     
     try {
+        const negocioId = getNegocioId();
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?whatsapp=eq.${whatsapp}`,
+            `${window.SUPABASE_URL}/rest/v1/clientes_autorizados?negocio_id=eq.${negocioId}&whatsapp=eq.${whatsapp}`,
             {
                 method: 'DELETE',
                 headers: {

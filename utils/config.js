@@ -1,4 +1,4 @@
-// utils/config.js - Configuración para el negocio
+// utils/config.js - Versión con getNegocioId()
 
 // ============================================
 // PROTECCIÓN CONTRA DOBLE CARGA
@@ -9,6 +9,14 @@ if (window.__CONFIG_CARGADO) {
     window.__CONFIG_CARGADO = true;
 
 console.log('⚙️ config.js cargado');
+
+// Helper para obtener negocio_id
+function getNegocioId() {
+    if (window.getNegocioId) {
+        return window.getNegocioId();
+    }
+    return localStorage.getItem('negocioId');
+}
 
 let configuracionGlobal = {
     duracion_turnos: 60,
@@ -40,9 +48,11 @@ const horaToIndice = (horaStr) => {
 // ============================================
 async function cargarConfiguracionGlobal() {
     try {
-        console.log('🌐 Cargando configuración global desde Supabase...');
+        const negocioId = getNegocioId();
+        console.log('🌐 Cargando configuración global desde Supabase para negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/configuracion?select=*`,
+            `${window.SUPABASE_URL}/rest/v1/configuracion?negocio_id=eq.${negocioId}&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -71,9 +81,11 @@ async function cargarConfiguracionGlobal() {
 
 async function cargarHorariosProfesionales() {
     try {
-        console.log('🌐 Cargando horarios de profesionales desde Supabase...');
+        const negocioId = getNegocioId();
+        console.log('🌐 Cargando horarios de profesionales desde Supabase para negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?select=*`,
+            `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${negocioId}&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -114,9 +126,11 @@ window.salonConfig = {
     
     guardar: async function(nuevaConfig) {
         try {
-            console.log('💾 Guardando configuración global:', nuevaConfig);
+            const negocioId = getNegocioId();
+            console.log('💾 Guardando configuración global para negocio:', negocioId, nuevaConfig);
             
             const datosAGuardar = {
+                negocio_id: negocioId,  // ← AGREGADO
                 duracion_turnos: nuevaConfig.duracion_turnos || 60,
                 intervalo_entre_turnos: nuevaConfig.intervalo_entre_turnos || 0,
                 modo_24h: nuevaConfig.modo_24h || false,
@@ -126,7 +140,7 @@ window.salonConfig = {
             console.log('📤 Datos a enviar:', datosAGuardar);
             
             const checkResponse = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/configuracion?select=id`,
+                `${window.SUPABASE_URL}/rest/v1/configuracion?negocio_id=eq.${negocioId}&select=id`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -144,7 +158,7 @@ window.salonConfig = {
             
             if (existe && existe.length > 0) {
                 console.log('🔄 Actualizando configuración ID:', existe[0].id);
-                url = `${window.SUPABASE_URL}/rest/v1/configuracion?id=eq.${existe[0].id}`;
+                url = `${window.SUPABASE_URL}/rest/v1/configuracion?negocio_id=eq.${negocioId}&id=eq.${existe[0].id}`;
                 method = 'PATCH';
             } else {
                 console.log('➕ Insertando nueva configuración');
@@ -199,8 +213,9 @@ window.salonConfig = {
     
     getHorariosPorDia: async function(profesionalId) {
         try {
+            const negocioId = getNegocioId();
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?profesional_id=eq.${profesionalId}&select=*`,
+                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${negocioId}&profesional_id=eq.${profesionalId}&select=*`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -221,10 +236,11 @@ window.salonConfig = {
     
     guardarHorariosPorDia: async function(profesionalId, horariosPorDia) {
         try {
-            console.log(`💾 Guardando horarios por día para profesional ${profesionalId}:`, horariosPorDia);
+            const negocioId = getNegocioId();
+            console.log(`💾 Guardando horarios por día para profesional ${profesionalId} (negocio: ${negocioId}):`, horariosPorDia);
             
             const checkResponse = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?profesional_id=eq.${profesionalId}&select=id,horas,dias`,
+                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${negocioId}&profesional_id=eq.${profesionalId}&select=id,horas,dias`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -250,7 +266,7 @@ window.salonConfig = {
             
             if (existe && existe.length > 0) {
                 console.log('🔄 Actualizando registro existente ID:', existe[0].id);
-                url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?id=eq.${existe[0].id}`;
+                url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${negocioId}&id=eq.${existe[0].id}`;
                 method = 'PATCH';
                 body = JSON.stringify({
                     horarios_por_dia: horariosPorDia,
@@ -262,6 +278,7 @@ window.salonConfig = {
                 url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales`;
                 method = 'POST';
                 body = JSON.stringify({
+                    negocio_id: negocioId,  // ← AGREGADO
                     profesional_id: profesionalId,
                     horarios_por_dia: horariosPorDia,
                     horas: horasArray,
@@ -312,8 +329,9 @@ window.salonConfig = {
     
     getHorariosProfesional: async function(profesionalId) {
         try {
+            const negocioId = getNegocioId();
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?profesional_id=eq.${profesionalId}&select=*`,
+                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${negocioId}&profesional_id=eq.${profesionalId}&select=*`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -344,10 +362,11 @@ window.salonConfig = {
         }
         
         try {
-            console.log(`💾 Guardando horarios para profesional ${profesionalId} (formato antiguo):`, horarios);
+            const negocioId = getNegocioId();
+            console.log(`💾 Guardando horarios para profesional ${profesionalId} (negocio: ${negocioId}):`, horarios);
             
             const checkResponse = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?profesional_id=eq.${profesionalId}&select=id`,
+                `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${negocioId}&profesional_id=eq.${profesionalId}&select=id`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -365,7 +384,7 @@ window.salonConfig = {
             
             if (existe && existe.length > 0) {
                 console.log('🔄 Actualizando registro existente ID:', existe[0].id);
-                url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?id=eq.${existe[0].id}`;
+                url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales?negocio_id=eq.${negocioId}&id=eq.${existe[0].id}`;
                 method = 'PATCH';
                 body = JSON.stringify({
                     horas: horarios.horas || [],
@@ -376,6 +395,7 @@ window.salonConfig = {
                 url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales`;
                 method = 'POST';
                 body = JSON.stringify({
+                    negocio_id: negocioId,  // ← AGREGADO
                     profesional_id: profesionalId,
                     horas: horarios.horas || [],
                     dias: horarios.dias || []
@@ -422,9 +442,7 @@ window.salonConfig = {
         }
     },
     
-    // ============================================
-    // ALIAS PARA COMPATIBILIDAD (eliminar después)
-    // ============================================
+    // Alias para compatibilidad
     getHorariosBarbero: async function(profesionalId) {
         console.warn('⚠️ getHorariosBarbero está obsoleto, usar getHorariosProfesional');
         return this.getHorariosProfesional(profesionalId);

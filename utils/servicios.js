@@ -1,6 +1,14 @@
-// utils/servicios.js - Gestión de servicios CON SUPABASE (PRECIO ÚNICO)
+// utils/servicios.js - Versión con getNegocioId()
 
 console.log('💅 servicios.js cargado (modo Supabase)');
+
+// Helper para obtener negocio_id
+function getNegocioId() {
+    if (window.getNegocioId) {
+        return window.getNegocioId();
+    }
+    return localStorage.getItem('negocioId');
+}
 
 let serviciosCache = [];
 let ultimaActualizacionServicios = 0;
@@ -8,9 +16,11 @@ const CACHE_DURATION_SERVICIOS = 5 * 60 * 1000;
 
 async function cargarServiciosDesdeDB() {
     try {
-        console.log('🌐 Cargando servicios desde Supabase...');
+        const negocioId = getNegocioId();
+        console.log('🌐 Cargando servicios desde Supabase para negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/servicios?select=*&order=id.asc`,
+            `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&select=*&order=id.asc`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -53,14 +63,14 @@ window.salonServicios = {
             return datos;
         }
         
-        // Fallback a datos por defecto (solo por si acaso)
         return [];
     },
     
     getById: async function(id) {
         try {
+            const negocioId = getNegocioId();
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/servicios?id=eq.${id}&select=*`,
+                `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&id=eq.${id}&select=*`,
                 {
                     headers: {
                         'apikey': window.SUPABASE_ANON_KEY,
@@ -78,10 +88,11 @@ window.salonServicios = {
         }
     },
     
-    // 🔥 CREAR con precio único
     crear: async function(servicio) {
         try {
-            console.log('➕ Creando servicio:', servicio);
+            const negocioId = getNegocioId();
+            console.log('➕ Creando servicio para negocio:', negocioId);
+            
             const response = await fetch(
                 `${window.SUPABASE_URL}/rest/v1/servicios`,
                 {
@@ -93,6 +104,7 @@ window.salonServicios = {
                         'Prefer': 'return=representation'
                     },
                     body: JSON.stringify({
+                        negocio_id: negocioId,  // ← AGREGADO
                         nombre: servicio.nombre,
                         duracion: servicio.duracion,
                         precio: servicio.precio,
@@ -125,12 +137,11 @@ window.salonServicios = {
         }
     },
     
-    // 🔥 ACTUALIZAR con precio único
     actualizar: async function(id, cambios) {
         try {
-            console.log('✏️ Actualizando servicio', id, 'con:', cambios);
+            const negocioId = getNegocioId();
+            console.log('✏️ Actualizando servicio', id, 'negocio:', negocioId);
             
-            // Construir objeto con los campos a actualizar
             const datosActualizar = {};
             if (cambios.nombre !== undefined) datosActualizar.nombre = cambios.nombre;
             if (cambios.duracion !== undefined) datosActualizar.duracion = cambios.duracion;
@@ -140,7 +151,7 @@ window.salonServicios = {
             if (cambios.imagen !== undefined) datosActualizar.imagen = cambios.imagen;
             
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/servicios?id=eq.${id}`,
+                `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&id=eq.${id}`,
                 {
                     method: 'PATCH',
                     headers: {
@@ -177,9 +188,11 @@ window.salonServicios = {
     
     eliminar: async function(id) {
         try {
-            console.log('🗑️ Eliminando servicio:', id);
+            const negocioId = getNegocioId();
+            console.log('🗑️ Eliminando servicio:', id, 'negocio:', negocioId);
+            
             const response = await fetch(
-                `${window.SUPABASE_URL}/rest/v1/servicios?id=eq.${id}`,
+                `${window.SUPABASE_URL}/rest/v1/servicios?negocio_id=eq.${negocioId}&id=eq.${id}`,
                 {
                     method: 'DELETE',
                     headers: {

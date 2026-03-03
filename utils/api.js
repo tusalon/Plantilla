@@ -1,4 +1,4 @@
-// utils/api.js - Versión genérica para profesionales
+// utils/api.js - Versión con getNegocioId()
 
 console.log('📡 api.js cargado');
 
@@ -8,14 +8,26 @@ if (typeof window.TABLE_NAME === 'undefined') {
 }
 const TABLE_NAME = window.TABLE_NAME;
 
+// Helper para obtener negocio_id
+function getNegocioId() {
+    // Usar la función de config-negocio.js si existe
+    if (window.getNegocioId) {
+        return window.getNegocioId();
+    }
+    // Fallback a localStorage
+    return localStorage.getItem('negocioId');
+}
+
 /**
  * Fetch all bookings for a specific date
  */
 async function getBookingsByDate(dateStr) {
     try {
-        console.log('🌐 Solicitando turnos a Supabase para', dateStr);
+        const negocioId = getNegocioId();
+        console.log('🌐 Solicitando turnos a Supabase para', dateStr, 'negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?fecha=eq.${dateStr}&estado=neq.Cancelado&select=*`,
+            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?negocio_id=eq.${negocioId}&fecha=eq.${dateStr}&estado=neq.Cancelado&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -42,9 +54,11 @@ async function getBookingsByDate(dateStr) {
  */
 async function getBookingsByDateAndProfesional(dateStr, profesionalId) {
     try {
-        console.log(`🌐 Solicitando turnos para ${dateStr} del profesional ${profesionalId}`);
+        const negocioId = getNegocioId();
+        console.log(`🌐 Solicitando turnos para ${dateStr} del profesional ${profesionalId} (negocio: ${negocioId})`);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?fecha=eq.${dateStr}&profesional_id=eq.${profesionalId}&estado=neq.Cancelado&select=*`,
+            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?negocio_id=eq.${negocioId}&fecha=eq.${dateStr}&profesional_id=eq.${profesionalId}&estado=neq.Cancelado&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -71,7 +85,10 @@ async function getBookingsByDateAndProfesional(dateStr, profesionalId) {
  */
 async function createBooking(bookingData) {
     try {
+        const negocioId = getNegocioId();
+        
         const dataForSupabase = {
+            negocio_id: negocioId,  // ← AGREGADO
             cliente_nombre: bookingData.cliente_nombre,
             cliente_whatsapp: bookingData.cliente_whatsapp,
             servicio: bookingData.servicio,
@@ -123,9 +140,11 @@ async function createBooking(bookingData) {
  */
 async function getAllBookings() {
     try {
-        console.log('🌐 Solicitando todas las reservas a Supabase');
+        const negocioId = getNegocioId();
+        console.log('🌐 Solicitando todas las reservas a Supabase para negocio:', negocioId);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?select=*&order=fecha.desc,hora_inicio.asc`,
+            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?negocio_id=eq.${negocioId}&select=*&order=fecha.desc,hora_inicio.asc`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -152,9 +171,11 @@ async function getAllBookings() {
  */
 async function updateBookingStatus(id, newStatus) {
     try {
-        console.log(`📝 Actualizando reserva ${id} a estado ${newStatus}`);
+        const negocioId = getNegocioId();
+        console.log(`📝 Actualizando reserva ${id} a estado ${newStatus} (negocio: ${negocioId})`);
+        
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?id=eq.${id}`,
+            `${window.SUPABASE_URL}/rest/v1/${TABLE_NAME}?negocio_id=eq.${negocioId}&id=eq.${id}`,
             {
                 method: 'PATCH',
                 headers: {
@@ -181,7 +202,6 @@ async function updateBookingStatus(id, newStatus) {
 // Hacer funciones globales
 window.getBookingsByDate = getBookingsByDate;
 window.getBookingsByDateAndProfesional = getBookingsByDateAndProfesional;
-// Alias para compatibilidad
 window.getBookingsByDateAndWorker = getBookingsByDateAndProfesional;
 window.createBooking = createBooking;
 window.getAllBookings = getAllBookings;

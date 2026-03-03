@@ -1,6 +1,14 @@
-// utils/auth-profesionales.js - Autenticación para profesionales
+// utils/auth-profesionales.js - Versión con getNegocioId()
 
 console.log('👤 auth-profesionales.js cargado');
+
+// Helper para obtener negocio_id
+function getNegocioId() {
+    if (window.getNegocioId) {
+        return window.getNegocioId();
+    }
+    return localStorage.getItem('negocioId');
+}
 
 // ============================================
 // FUNCIONES DE AUTENTICACIÓN PARA PROFESIONALES
@@ -8,10 +16,11 @@ console.log('👤 auth-profesionales.js cargado');
 
 window.loginProfesional = async function(telefono, password) {
     try {
-        console.log('🔐 Intentando login de profesional:', telefono);
+        const negocioId = getNegocioId();
+        console.log('🔐 Intentando login de profesional:', telefono, 'negocio:', negocioId);
         
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/profesionales?telefono=eq.${telefono}&password=eq.${password}&activo=eq.true&select=*`,
+            `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&telefono=eq.${telefono}&password=eq.${password}&activo=eq.true&select=*`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -42,10 +51,11 @@ window.loginProfesional = async function(telefono, password) {
 
 window.verificarProfesionalPorTelefono = async function(telefono) {
     try {
-        console.log('🔍 Verificando si es profesional (solo teléfono):', telefono);
+        const negocioId = getNegocioId();
+        console.log('🔍 Verificando si es profesional (solo teléfono):', telefono, 'negocio:', negocioId);
         
         const response = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/profesionales?telefono=eq.${telefono}&activo=eq.true&select=id,nombre,telefono,nivel`,
+            `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&telefono=eq.${telefono}&activo=eq.true&select=id,nombre,telefono,nivel`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -91,17 +101,14 @@ window.getProfesionalAutenticado = function() {
 
 window.obtenerRolUsuario = async function(telefono) {
     try {
-        console.log('🔍 Obteniendo rol para:', telefono);
+        const negocioId = getNegocioId();
+        console.log('🔍 Obteniendo rol para:', telefono, 'negocio:', negocioId);
         
         const telefonoLimpio = telefono.replace(/\D/g, '');
         
-        // Verificar si es dueño (admin)
-        // Esto debería venir de la tabla negocios, no hardcodeado
-        // Por ahora lo dejamos así temporalmente
-        
         // Verificar si es PROFESIONAL
         const profesionalRes = await fetch(
-            `${window.SUPABASE_URL}/rest/v1/profesionales?telefono=eq.${telefonoLimpio}&activo=eq.true&select=id,nombre,nivel`,
+            `${window.SUPABASE_URL}/rest/v1/profesionales?negocio_id=eq.${negocioId}&telefono=eq.${telefonoLimpio}&activo=eq.true&select=id,nombre,nivel`,
             {
                 headers: {
                     'apikey': window.SUPABASE_ANON_KEY,
@@ -146,8 +153,10 @@ window.tieneAccesoPanel = async function(telefono) {
 
 window.getReservasPorProfesional = async function(profesionalId, soloActivas = true) {
     try {
-        console.log(`📋 Obteniendo reservas para profesional ${profesionalId}`);
-        let url = `${window.SUPABASE_URL}/rest/v1/reservas?profesional_id=eq.${profesionalId}&order=fecha.desc,hora_inicio.asc`;
+        const negocioId = getNegocioId();
+        console.log(`📋 Obteniendo reservas para profesional ${profesionalId} (negocio: ${negocioId})`);
+        
+        let url = `${window.SUPABASE_URL}/rest/v1/reservas?negocio_id=eq.${negocioId}&profesional_id=eq.${profesionalId}&order=fecha.desc,hora_inicio.asc`;
         
         if (soloActivas) {
             url += '&estado=neq.Cancelado';
@@ -174,7 +183,5 @@ window.getReservasPorProfesional = async function(profesionalId, soloActivas = t
     }
 };
 
-// ============================================
-// ALIAS PARA COMPATIBILIDAD (eliminar después)
-// ============================================
+// Alias para compatibilidad
 window.getReservasPorBarbero = window.getReservasPorProfesional;

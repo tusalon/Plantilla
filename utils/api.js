@@ -1,4 +1,4 @@
-// utils/api.js - Versión con getNegocioId()
+// utils/api.js - Versión genérica para profesionales (CORREGIDO)
 
 console.log('📡 api.js cargado');
 
@@ -8,11 +8,11 @@ if (typeof window.TABLE_NAME === 'undefined') {
 }
 const TABLE_NAME = window.TABLE_NAME;
 
-// Helper para obtener negocio_id
+// Helper para obtener negocio_id - SIN RECURSIÓN
 function getNegocioId() {
-    // Usar la función de config-negocio.js si existe
-    if (window.getNegocioId) {
-        return window.getNegocioId();
+    // Usar la función global de config-negocio.js si existe
+    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
+        return window.getNegocioIdFromConfig();
     }
     // Fallback a localStorage
     return localStorage.getItem('negocioId');
@@ -88,7 +88,7 @@ async function createBooking(bookingData) {
         const negocioId = getNegocioId();
         
         const dataForSupabase = {
-            negocio_id: negocioId,  // ← AGREGADO
+            negocio_id: negocioId,
             cliente_nombre: bookingData.cliente_nombre,
             cliente_whatsapp: bookingData.cliente_whatsapp,
             servicio: bookingData.servicio,

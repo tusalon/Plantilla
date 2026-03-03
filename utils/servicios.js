@@ -1,12 +1,14 @@
-// utils/servicios.js - Versión con getNegocioId()
+// utils/servicios.js - Gestión de servicios (CORREGIDO)
 
 console.log('💅 servicios.js cargado (modo Supabase)');
 
-// Helper para obtener negocio_id
+// Helper para obtener negocio_id - SIN RECURSIÓN
 function getNegocioId() {
-    if (window.getNegocioId) {
-        return window.getNegocioId();
+    // Usar la función global de config-negocio.js si existe
+    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
+        return window.getNegocioIdFromConfig();
     }
+    // Fallback a localStorage
     return localStorage.getItem('negocioId');
 }
 
@@ -104,7 +106,7 @@ window.salonServicios = {
                         'Prefer': 'return=representation'
                     },
                     body: JSON.stringify({
-                        negocio_id: negocioId,  // ← AGREGADO
+                        negocio_id: negocioId,
                         nombre: servicio.nombre,
                         duracion: servicio.duracion,
                         precio: servicio.precio,

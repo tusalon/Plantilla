@@ -18,7 +18,7 @@ const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos
  * Obtiene el negocio_id - PRIORIDAD: localStorage > ID fijo
  * Esta función SIEMPRE devuelve un ID válido
  */
-function getNegocioId() {
+function getNegocioIdFromConfig() {
     // 1. Si hay sesión de admin logueado, usar ese
     const localId = localStorage.getItem('negocioId');
     if (localId) {
@@ -31,15 +31,16 @@ function getNegocioId() {
     return NEGOCIO_ID_POR_DEFECTO;
 }
 
-// Hacer la función global INMEDIATAMENTE
-window.getNegocioId = getNegocioId;
+// Hacer la función global con nombre ÚNICO
+window.getNegocioIdFromConfig = getNegocioIdFromConfig;
+// También mantener el nombre anterior para compatibilidad
+window.getNegocioId = getNegocioIdFromConfig;
 
 /**
  * Carga la configuración del negocio desde Supabase
  */
 window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
-    // AHORA USA LA FUNCIÓN QUE SIEMPRE DEVUELVE ALGO
-    const negocioId = getNegocioId();
+    const negocioId = getNegocioIdFromConfig();
     
     if (!negocioId) {
         console.error('❌ No hay negocioId disponible');
@@ -109,7 +110,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
  */
 window.getNombreNegocio = async function() {
     const config = await window.cargarConfiguracionNegocio();
-    return config?.nombre || 'BennetSalón'; // ← Cambiado el default
+    return config?.nombre || 'BennetSalón';
 };
 
 /**
@@ -117,7 +118,7 @@ window.getNombreNegocio = async function() {
  */
 window.getTelefonoDuenno = async function() {
     const config = await window.cargarConfiguracionNegocio();
-    return config?.telefono || '54438629'; // ← Cambiado el default
+    return config?.telefono || '54438629';
 };
 
 /**
@@ -125,23 +126,31 @@ window.getTelefonoDuenno = async function() {
  */
 window.getNtfyTopic = async function() {
     const config = await window.cargarConfiguracionNegocio();
-    return config?.ntfy_topic || 'bennetsalon-89d702'; // ← Cambiado el default
+    return config?.ntfy_topic || 'bennetsalon-89d702';
 };
 
-// Otras funciones (sin cambios)
+/**
+ * Obtiene el color principal
+ */
 window.getColorPrincipal = async function() {
     const config = await window.cargarConfiguracionNegocio();
     return config?.color_primario || '#ec4899';
 };
 
+/**
+ * Obtiene el color secundario
+ */
 window.getColorSecundario = async function() {
     const config = await window.cargarConfiguracionNegocio();
     return config?.color_secundario || '#f9a8d4';
 };
 
+/**
+ * Verifica si el negocio ya está configurado
+ */
 window.negocioConfigurado = async function() {
     const config = await window.cargarConfiguracionNegocio();
-    return config?.configurado || true; // ← Cambiado a true por defecto
+    return config?.configurado || true;
 };
 
 // Precargar configuración al inicio

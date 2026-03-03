@@ -1,4 +1,4 @@
-// utils/config.js - Versión con getNegocioId()
+// utils/config.js - Configuración del negocio (CORREGIDO)
 
 // ============================================
 // PROTECCIÓN CONTRA DOBLE CARGA
@@ -10,11 +10,13 @@ if (window.__CONFIG_CARGADO) {
 
 console.log('⚙️ config.js cargado');
 
-// Helper para obtener negocio_id
+// Helper para obtener negocio_id - SIN RECURSIÓN
 function getNegocioId() {
-    if (window.getNegocioId) {
-        return window.getNegocioId();
+    // Usar la función global de config-negocio.js si existe
+    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
+        return window.getNegocioIdFromConfig();
     }
+    // Fallback a localStorage
     return localStorage.getItem('negocioId');
 }
 
@@ -130,7 +132,7 @@ window.salonConfig = {
             console.log('💾 Guardando configuración global para negocio:', negocioId, nuevaConfig);
             
             const datosAGuardar = {
-                negocio_id: negocioId,  // ← AGREGADO
+                negocio_id: negocioId,
                 duracion_turnos: nuevaConfig.duracion_turnos || 60,
                 intervalo_entre_turnos: nuevaConfig.intervalo_entre_turnos || 0,
                 modo_24h: nuevaConfig.modo_24h || false,
@@ -207,10 +209,6 @@ window.salonConfig = {
         }
     },
     
-    // ============================================
-    // FUNCIONES PARA PROFESIONALES
-    // ============================================
-    
     getHorariosPorDia: async function(profesionalId) {
         try {
             const negocioId = getNegocioId();
@@ -278,7 +276,7 @@ window.salonConfig = {
                 url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales`;
                 method = 'POST';
                 body = JSON.stringify({
-                    negocio_id: negocioId,  // ← AGREGADO
+                    negocio_id: negocioId,
                     profesional_id: profesionalId,
                     horarios_por_dia: horariosPorDia,
                     horas: horasArray,
@@ -395,7 +393,7 @@ window.salonConfig = {
                 url = `${window.SUPABASE_URL}/rest/v1/horarios_profesionales`;
                 method = 'POST';
                 body = JSON.stringify({
-                    negocio_id: negocioId,  // ← AGREGADO
+                    negocio_id: negocioId,
                     profesional_id: profesionalId,
                     horas: horarios.horas || [],
                     dias: horarios.dias || []

@@ -1,12 +1,14 @@
-// utils/profesionales.js - Versión con getNegocioId()
+// utils/profesionales.js - Gestión de profesionales (CORREGIDO)
 
 console.log('👥 profesionales.js cargado');
 
-// Helper para obtener negocio_id
+// Helper para obtener negocio_id - SIN RECURSIÓN
 function getNegocioId() {
-    if (window.getNegocioId) {
-        return window.getNegocioId();
+    // Usar la función global de config-negocio.js si existe
+    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
+        return window.getNegocioIdFromConfig();
     }
+    // Fallback a localStorage
     return localStorage.getItem('negocioId');
 }
 
@@ -99,7 +101,7 @@ window.salonProfesionales = {
                         'Prefer': 'return=representation'
                     },
                     body: JSON.stringify({
-                        negocio_id: negocioId,  // ← AGREGADO
+                        negocio_id: negocioId,
                         nombre: profesional.nombre,
                         especialidad: profesional.especialidad,
                         color: profesional.color || 'bg-amber-600',

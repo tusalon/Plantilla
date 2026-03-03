@@ -1,12 +1,14 @@
-// utils/auth-clients.js - Versión con getNegocioId()
+// utils/auth-clients.js - Autenticación de clientes (CORREGIDO)
 
 console.log('🚀 auth-clients.js CARGADO');
 
-// Helper para obtener negocio_id
+// Helper para obtener negocio_id - SIN RECURSIÓN
 function getNegocioId() {
-    if (window.getNegocioId) {
-        return window.getNegocioId();
+    // Usar la función global de config-negocio.js si existe
+    if (typeof window.getNegocioIdFromConfig !== 'undefined') {
+        return window.getNegocioIdFromConfig();
     }
+    // Fallback a localStorage
     return localStorage.getItem('negocioId');
 }
 
@@ -173,7 +175,7 @@ window.agregarClientePendiente = async function(nombre, whatsapp) {
                     'Prefer': 'return=representation'
                 },
                 body: JSON.stringify({
-                    negocio_id: negocioId,  // ← AGREGADO
+                    negocio_id: negocioId,
                     nombre: nombre,
                     whatsapp: whatsapp,
                     estado: 'pendiente',
@@ -400,7 +402,7 @@ window.aprobarCliente = async function(whatsapp) {
                     'Prefer': 'return=representation'
                 },
                 body: JSON.stringify({
-                    negocio_id: negocioId,  // ← AGREGADO
+                    negocio_id: negocioId,
                     nombre: solicitud.nombre,
                     whatsapp: solicitud.whatsapp
                 })

@@ -1,6 +1,6 @@
-// admin-app.js - Panel de administración (VERSIÓN FEMENINA CORREGIDA)
+// admin-app.js - Panel de administración (VERSIÓN SIN SOLICITUDES PENDIENTES)
 
-console.log('🚀 ADMIN-APP.JS VERSIÓN:', '2024-03-01');
+console.log('🚀 ADMIN-APP.JS VERSIÓN SIN SOLICITUDES');
 
 window.addEventListener('error', function(e) {
     console.error('❌ Error detectado, posible versión antigua:', e.message);
@@ -279,11 +279,9 @@ function AdminApp() {
     // Pestaña activa
     const [tabActivo, setTabActivo] = React.useState('reservas');
     
-    // Estados para clientes pendientes
-    const [showClientesPendientes, setShowClientesPendientes] = React.useState(false);
-    const [clientesPendientes, setClientesPendientes] = React.useState([]);
-    const [showClientesAutorizados, setShowClientesAutorizados] = React.useState(false);
-    const [clientesAutorizados, setClientesAutorizados] = React.useState([]);
+    // Estados para clientes registrados
+    const [showClientesRegistrados, setShowClientesRegistrados] = React.useState(false);
+    const [clientesRegistrados, setClientesRegistrados] = React.useState([]);
     const [errorClientes, setErrorClientes] = React.useState('');
     const [cargandoClientes, setCargandoClientes] = React.useState(false);
 
@@ -662,120 +660,48 @@ function AdminApp() {
     // FUNCIONES DE CLIENTES
     // ============================================
     
-    const loadClientesPendientes = async () => {
-        console.log('🔄 Cargando clientes pendientes...');
+    const loadClientesRegistrados = async () => {
+        console.log('🔄 Cargando clientes registrados...');
         setCargandoClientes(true);
         try {
-            if (typeof window.getClientesPendientes !== 'function') {
-                console.error('❌ getClientesPendientes no está definida');
-                setErrorClientes('Error: Sistema de clientes no disponible');
-                setClientesPendientes([]);
+            if (typeof window.getClientesRegistrados !== 'function') {
+                console.error('❌ getClientesRegistrados no está definida');
+                setClientesRegistrados([]);
                 return;
             }
             
-            const pendientes = await window.getClientesPendientes();
-            console.log('📋 Pendientes obtenidos:', pendientes);
+            const registrados = await window.getClientesRegistrados();
+            console.log('📋 Registrados obtenidos:', registrados.length);
             
-            if (Array.isArray(pendientes)) {
-                setClientesPendientes(pendientes);
+            if (Array.isArray(registrados)) {
+                setClientesRegistrados(registrados);
             } else {
-                console.error('❌ pendientes no es un array:', pendientes);
-                setClientesPendientes([]);
+                console.error('❌ registrados no es un array:', registrados);
+                setClientesRegistrados([]);
             }
-            setErrorClientes('');
         } catch (error) {
-            console.error('Error cargando pendientes:', error);
-            setErrorClientes('Error al cargar solicitudes');
-            setClientesPendientes([]);
+            console.error('Error cargando registrados:', error);
+            setClientesRegistrados([]);
         } finally {
             setCargandoClientes(false);
         }
     };
 
-    const loadClientesAutorizados = async () => {
-        console.log('🔄 Cargando clientes autorizados...');
-        setCargandoClientes(true);
+    const handleEliminarCliente = async (whatsapp) => {
+        if (!confirm('¿Seguro que querés eliminar este cliente? Perderá el acceso a la app.')) return;
+        console.log('🗑️ Eliminando cliente:', whatsapp);
         try {
-            if (typeof window.getClientesAutorizados !== 'function') {
-                console.error('❌ getClientesAutorizados no está definida');
-                setClientesAutorizados([]);
-                return;
-            }
-            
-            const autorizados = await window.getClientesAutorizados();
-            console.log('📋 Autorizados obtenidos:', autorizados);
-            
-            if (Array.isArray(autorizados)) {
-                setClientesAutorizados(autorizados);
-            } else {
-                console.error('❌ autorizados no es un array:', autorizados);
-                setClientesAutorizados([]);
-            }
-        } catch (error) {
-            console.error('Error cargando autorizados:', error);
-            setClientesAutorizados([]);
-        } finally {
-            setCargandoClientes(false);
-        }
-    };
-
-    const handleAprobarCliente = async (whatsapp) => {
-        console.log('✅ Aprobando:', whatsapp);
-        try {
-            if (typeof window.aprobarCliente !== 'function') {
-                alert('Error: Sistema de clientes no disponible');
-                return;
-            }
-            const cliente = await window.aprobarCliente(whatsapp);
-            if (cliente) {
-                await loadClientesPendientes();
-                await loadClientesAutorizados();
-                alert(`✅ Cliente ${cliente.nombre} aprobado`);
-                
-                const mensaje = `✅ ¡Hola ${cliente.nombre}! Tu acceso ha sido APROBADO. Ya podés reservar turnos desde la app.`;
-                const telefono = cliente.whatsapp.replace(/\D/g, '');
-                const encodedText = encodeURIComponent(mensaje);
-                window.open(`https://api.whatsapp.com/send?phone=${telefono}&text=${encodedText}`, '_blank');
-            }
-        } catch (error) {
-            console.error('Error aprobando:', error);
-            alert('Error al aprobar cliente');
-        }
-    };
-
-    const handleRechazarCliente = async (whatsapp) => {
-        if (!confirm('¿Rechazar esta solicitud?')) return;
-        console.log('❌ Rechazando:', whatsapp);
-        try {
-            if (typeof window.rechazarCliente !== 'function') {
-                alert('Error: Sistema de clientes no disponible');
-                return;
-            }
-            const resultado = await window.rechazarCliente(whatsapp);
-            if (resultado) {
-                await loadClientesPendientes();
-            }
-        } catch (error) {
-            console.error('Error rechazando:', error);
-            alert('Error al rechazar cliente');
-        }
-    };
-
-    const handleEliminarAutorizado = async (whatsapp) => {
-        if (!confirm('¿Seguro que querés eliminar este cliente autorizado? Perderá el acceso a la app.')) return;
-        console.log('🗑️ Eliminando autorizado:', whatsapp);
-        try {
-            if (typeof window.eliminarClienteAutorizado !== 'function') {
+            if (typeof window.eliminarCliente !== 'function') {
                 alert('Error: Función no disponible');
                 return;
             }
-            const resultado = await window.eliminarClienteAutorizado(whatsapp);
+            const resultado = await window.eliminarCliente(whatsapp);
             if (resultado) {
-                await loadClientesAutorizados();
+                await loadClientesRegistrados();
                 alert(`✅ Cliente eliminado`);
             }
         } catch (error) {
-            console.error('Error eliminando autorizado:', error);
+            console.error('Error eliminando cliente:', error);
             alert('Error al eliminar cliente');
         }
     };
@@ -835,7 +761,7 @@ function AdminApp() {
         fetchBookings();
         
         if (userRole === 'admin' || (userRole === 'profesional' && userNivel >= 2)) {
-            loadClientesAutorizados();
+            loadClientesRegistrados();
         }
         
         console.log('🔍 Verificando auth:', {
@@ -1258,37 +1184,50 @@ El administrador cancelo la reserva.`;
                             </div>
                         )}
 
+                        {/* SOLO CLIENTES REGISTRADOS - SIN SOLICITUDES PENDIENTES */}
                         <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
                             <button
                                 onClick={() => {
-                                    setShowClientesAutorizados(!showClientesAutorizados);
-                                    if (!showClientesAutorizados) loadClientesAutorizados();
+                                    setShowClientesRegistrados(!showClientesRegistrados);
+                                    if (!showClientesRegistrados) loadClientesRegistrados();
                                 }}
                                 className="flex items-center justify-between w-full"
                             >
                                 <div className="flex items-center gap-2">
                                     <span>✅</span>
-                                    <span className="font-medium">Clientes Autorizados</span>
-                                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">{clientesAutorizados.length}</span>
+                                    <span className="font-medium">Clientes Registrados</span>
+                                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">{clientesRegistrados.length}</span>
                                 </div>
-                                <span>{showClientesAutorizados ? '▲' : '▼'}</span>
+                                <span>{showClientesRegistrados ? '▲' : '▼'}</span>
                             </button>
                             
-                            {showClientesAutorizados && (
+                            {showClientesRegistrados && (
                                 <div className="mt-4">
                                     <div className="space-y-3 max-h-80 overflow-y-auto">
-                                        {clientesAutorizados.length === 0 ? (
-                                            <div className="text-center py-6 text-gray-500"><p>No hay clientes autorizados</p></div>
+                                        {clientesRegistrados.length === 0 ? (
+                                            <div className="text-center py-6 text-gray-500">
+                                                <p>No hay clientes registrados</p>
+                                            </div>
                                         ) : (
-                                            clientesAutorizados.map((cliente, index) => (
+                                            clientesRegistrados.map((cliente, index) => (
                                                 <div key={index} className="bg-green-50 p-4 rounded-lg border border-green-200">
                                                     <div className="flex justify-between items-start">
                                                         <div>
                                                             <p className="font-bold text-gray-800">{cliente.nombre}</p>
                                                             <p className="text-sm text-gray-600">📱 +{cliente.whatsapp}</p>
+                                                            {cliente.fecha_registro && (
+                                                                <p className="text-xs text-gray-400 mt-1">
+                                                                    📅 Registrado: {new Date(cliente.fecha_registro).toLocaleDateString()}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                         {(userRole === 'admin' || userNivel >= 3) && (
-                                                            <button onClick={() => handleEliminarAutorizado(cliente.whatsapp)} className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">Quitar</button>
+                                                            <button 
+                                                                onClick={() => handleEliminarCliente(cliente.whatsapp)}
+                                                                className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
+                                                            >
+                                                                Quitar
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1298,52 +1237,6 @@ El administrador cancelo la reserva.`;
                                 </div>
                             )}
                         </div>
-
-                        {(userRole === 'admin' || userNivel >= 3) && (
-                            <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-500">
-                                <button
-                                    onClick={() => {
-                                        setShowClientesPendientes(!showClientesPendientes);
-                                        if (!showClientesPendientes) loadClientesPendientes();
-                                    }}
-                                    className="flex items-center justify-between w-full"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <span>⏳</span>
-                                        <span className="font-medium">Solicitudes Pendientes</span>
-                                        {clientesPendientes.length > 0 && (
-                                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">{clientesPendientes.length}</span>
-                                        )}
-                                    </div>
-                                    <span>{showClientesPendientes ? '▲' : '▼'}</span>
-                                </button>
-                                
-                                {showClientesPendientes && (
-                                    <div className="mt-4">
-                                        <div className="space-y-3 max-h-80 overflow-y-auto">
-                                            {clientesPendientes.length === 0 ? (
-                                                <div className="text-center py-6 text-gray-500"><p>No hay solicitudes pendientes</p></div>
-                                            ) : (
-                                                clientesPendientes.map((cliente, index) => (
-                                                    <div key={index} className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                                                        <div className="flex justify-between items-start">
-                                                            <div>
-                                                                <p className="font-bold text-gray-800">{cliente.nombre}</p>
-                                                                <p className="text-sm text-gray-600">📱 +{cliente.whatsapp}</p>
-                                                            </div>
-                                                            <div className="flex gap-2">
-                                                                <button onClick={() => handleAprobarCliente(cliente.whatsapp)} className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">Aprobar</button>
-                                                                <button onClick={() => handleRechazarCliente(cliente.whatsapp)} className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">Rechazar</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
                 )}
 

@@ -1,4 +1,4 @@
-// components/MyBookings.js - Versión con notificaciones dinámicas
+// components/MyBookings.js - Versión con edición de perfil y registro automático
 
 function MyBookings({ cliente, onVolver }) {
     const [bookings, setBookings] = React.useState([]);
@@ -10,6 +10,11 @@ function MyBookings({ cliente, onVolver }) {
     const [nombreNegocio, setNombreNegocio] = React.useState('');
     const [ntfyTopic, setNtfyTopic] = React.useState('reservas');
     const [datosCargados, setDatosCargados] = React.useState(false);
+    
+    // Estados para edición de perfil
+    const [editandoPerfil, setEditandoPerfil] = React.useState(false);
+    const [nuevoNombre, setNuevoNombre] = React.useState(cliente?.nombre || '');
+    const [guardandoPerfil, setGuardandoPerfil] = React.useState(false);
 
     React.useEffect(() => {
         cargarReservas();
@@ -62,6 +67,38 @@ function MyBookings({ cliente, onVolver }) {
             setMensajeError('Error al cargar tus reservas');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // ============================================
+    // FUNCIÓN PARA EDITAR PERFIL
+    // ============================================
+    const handleGuardarNombre = async () => {
+        if (!nuevoNombre.trim()) {
+            alert('El nombre no puede estar vacío');
+            return;
+        }
+        
+        setGuardandoPerfil(true);
+        try {
+            const exito = await window.actualizarNombreCliente(cliente.whatsapp, nuevoNombre);
+            if (exito) {
+                // Actualizar el objeto cliente
+                cliente.nombre = nuevoNombre;
+                
+                // Actualizar en localStorage
+                localStorage.setItem('clienteAuth', JSON.stringify(cliente));
+                
+                setEditandoPerfil(false);
+                alert('✅ Nombre actualizado correctamente');
+            } else {
+                alert('Error al actualizar el nombre');
+            }
+        } catch (error) {
+            console.error('Error actualizando nombre:', error);
+            alert('Error al actualizar');
+        } finally {
+            setGuardandoPerfil(false);
         }
     };
 
@@ -293,17 +330,70 @@ Si no puede asistir, contactanos por WhatsApp al +${telefonoDuenno}`;
             {/* Contenido */}
             <div className="max-w-3xl mx-auto px-4 py-6">
                 
-                {/* Info del cliente */}
+                {/* Info del cliente con opción de editar */}
                 <div className="bg-white/80 backdrop-blur-sm border border-pink-200 rounded-lg p-4 mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">
-                            {cliente.nombre.charAt(0)}
+                    {editandoPerfil ? (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                                    {cliente.nombre.charAt(0)}
+                                </div>
+                                <input
+                                    type="text"
+                                    value={nuevoNombre}
+                                    onChange={(e) => setNuevoNombre(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-pink-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                                    placeholder="Tu nombre"
+                                    disabled={guardandoPerfil}
+                                />
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                                <button
+                                    onClick={() => {
+                                        setEditandoPerfil(false);
+                                        setNuevoNombre(cliente.nombre);
+                                    }}
+                                    className="px-3 py-1 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100"
+                                    disabled={guardandoPerfil}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleGuardarNombre}
+                                    className="px-3 py-1 bg-pink-500 text-white rounded-lg hover:bg-pink-600 flex items-center gap-2"
+                                    disabled={guardandoPerfil}
+                                >
+                                    {guardandoPerfil ? (
+                                        <>
+                                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                            Guardando...
+                                        </>
+                                    ) : (
+                                        'Guardar'
+                                    )}
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <p className="font-medium text-pink-800">{cliente.nombre}</p>
-                            <p className="text-sm text-pink-600">{cliente.whatsapp}</p>
+                    ) : (
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                                    {cliente.nombre.charAt(0)}
+                                </div>
+                                <div>
+                                    <p className="font-medium text-pink-800">{cliente.nombre}</p>
+                                    <p className="text-sm text-pink-600">{cliente.whatsapp}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setEditandoPerfil(true)}
+                                className="text-pink-500 hover:text-pink-700 p-2 hover:bg-pink-50 rounded-full transition"
+                                title="Editar perfil"
+                            >
+                                ✏️
+                            </button>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Mensaje de error si hay */}

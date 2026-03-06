@@ -1,4 +1,4 @@
-// components/admin/EditarNegocio.js
+// components/admin/EditarNegocio.js - VERSIÓN SIN COLORES (CONSERVA LOGO Y HORARIO)
 
 function EditarNegocio() {
     const [negocioId, setNegocioId] = React.useState(null);
@@ -11,8 +11,9 @@ function EditarNegocio() {
         telefono: '',
         email: '',
         direccion: '',
-        color_primario: '#c49b63',
-        color_secundario: '#f59e0b',
+        // 🗑️ COLORES ELIMINADOS
+        // color_primario: '#c49b63',
+        // color_secundario: '#f59e0b',
         logo_url: '',
         logo_preview: '',
         logo_file: null,
@@ -49,8 +50,7 @@ function EditarNegocio() {
                     telefono: configData.telefono || '',
                     email: configData.email || '',
                     direccion: configData.direccion || '',
-                    color_primario: configData.color_primario || '#c49b63',
-                    color_secundario: configData.color_secundario || '#f59e0b',
+                    // 🗑️ COLORES ELIMINADOS - ya no se cargan
                     logo_url: configData.logo_url || '',
                     logo_preview: configData.logo_url || '',
                     logo_file: null,
@@ -154,8 +154,7 @@ function EditarNegocio() {
                 telefono: config.telefono,
                 email: config.email || null,
                 direccion: config.direccion || null,
-                color_primario: config.color_primario,
-                color_secundario: config.color_secundario,
+                // 🗑️ COLORES ELIMINADOS - ya no se envían
                 mensaje_bienvenida: config.mensaje_bienvenida,
                 mensaje_confirmacion: config.mensaje_confirmacion,
                 instagram: config.instagram || null,
@@ -319,56 +318,17 @@ function EditarNegocio() {
                             </div>
                         </div>
 
-                        {/* SECCIÓN 2: Personalización visual */}
+                        {/* SECCIÓN 2: Personalización visual (SOLO LOGO Y HORARIO) */}
                         <div className="pt-4 border-t">
                             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <i className="icon-palette text-amber-500"></i>
                                 Personalización
                             </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Color principal
-                                    </label>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="color"
-                                            value={config.color_primario}
-                                            onChange={(e) => setConfig({...config, color_primario: e.target.value})}
-                                            className="w-12 h-12 rounded border"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={config.color_primario}
-                                            onChange={(e) => setConfig({...config, color_primario: e.target.value})}
-                                            className="flex-1 border rounded-lg px-3 py-2"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-gray-400 mt-1">Botones, headers</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Color secundario
-                                    </label>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="color"
-                                            value={config.color_secundario}
-                                            onChange={(e) => setConfig({...config, color_secundario: e.target.value})}
-                                            className="w-12 h-12 rounded border"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={config.color_secundario}
-                                            onChange={(e) => setConfig({...config, color_secundario: e.target.value})}
-                                            className="flex-1 border rounded-lg px-3 py-2"
-                                        />
-                                    </div>
-                                    <p className="text-xs text-gray-400 mt-1">Acentos, detalles</p>
-                                </div>
-                            </div>
+                            
+                            {/* 🗑️ SECCIÓN DE COLORES ELIMINADA */}
 
-                            <div className="mt-4">
+                            {/* Logo (SE CONSERVA) */}
+                            <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Logo del negocio
                                 </label>
@@ -398,7 +358,8 @@ function EditarNegocio() {
                                 </div>
                             </div>
 
-                            <div className="mt-4">
+                            {/* Horario de atención (SE CONSERVA) */}
+                            <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Horario de atención
                                 </label>

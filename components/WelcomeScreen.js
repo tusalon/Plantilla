@@ -1,4 +1,4 @@
-// components/WelcomeScreen.js - Versión femenina con imagen de fondo
+// components/WelcomeScreen.js - Versión con REDES SOCIALES (WhatsApp, Instagram, Facebook)
 
 function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
     const [config, setConfig] = React.useState(null);
@@ -8,6 +8,7 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
     React.useEffect(() => {
         const cargarDatos = async () => {
             const configData = await window.cargarConfiguracionNegocio();
+            console.log('📱 WelcomeScreen - Config cargada:', configData);
             setConfig(configData);
             setCargando(false);
         };
@@ -27,9 +28,80 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
         );
     }
 
-    const colorPrimario = '#ec4899'; // Rosado principal
-    const colorSecundario = '#f9a8d4'; // Rosado claro
-    const sticker = config?.especialidad?.toLowerCase().includes('uñas') ? '💅' : '💇‍♀️';
+    const colorPrimario = config?.color_primario || '#ec4899';
+    const sticker = config?.especialidad?.toLowerCase().includes('uñas') ? '💅' : 
+                    config?.especialidad?.toLowerCase().includes('pelo') ? '💇‍♀️' : 
+                    config?.especialidad?.toLowerCase().includes('belleza') ? '🌸' : '💖';
+
+    // ============================================
+    // FUNCIONES PARA ABRIR REDES SOCIALES
+    // ============================================
+    
+    const abrirWhatsApp = () => {
+        if (!config?.telefono) {
+            alert('📱 El número de WhatsApp no está configurado');
+            return;
+        }
+        
+        const telefonoLimpio = config.telefono.replace(/\D/g, '');
+        const mensaje = encodeURIComponent(`Hola! Quiero consultar sobre turnos en ${config?.nombre || 'el salón'}`);
+        
+        // Abrir WhatsApp
+        window.open(`https://wa.me/${telefonoLimpio}?text=${mensaje}`, '_blank');
+    };
+
+    const abrirInstagram = () => {
+        if (!config?.instagram) {
+            alert('📷 El usuario de Instagram no está configurado');
+            return;
+        }
+        
+        // Limpiar el usuario (quitar @ si lo tiene)
+        let usuario = config.instagram.replace('@', '').trim();
+        
+        // Abrir Instagram (app o web)
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            // Intentar abrir la app primero
+            window.location.href = `instagram://user?username=${usuario}`;
+            
+            // Si no abre la app, abrir web después de 1 segundo
+            setTimeout(() => {
+                window.open(`https://instagram.com/${usuario}`, '_blank');
+            }, 1000);
+        } else {
+            // Desktop: abrir web directamente
+            window.open(`https://instagram.com/${usuario}`, '_blank');
+        }
+    };
+
+    const abrirFacebook = () => {
+        if (!config?.facebook) {
+            alert('👤 La página de Facebook no está configurada');
+            return;
+        }
+        
+        // Limpiar la URL/página
+        let pagina = config.facebook.trim();
+        
+        // Si solo es el nombre, construir URL
+        if (!pagina.startsWith('http')) {
+            // Sacar @ si tiene
+            pagina = pagina.replace('@', '');
+            pagina = `https://facebook.com/${pagina}`;
+        }
+        
+        // Abrir Facebook
+        window.open(pagina, '_blank');
+    };
+
+    // Verificar qué redes están configuradas
+    const tieneWhatsApp = config?.telefono && config.telefono.length >= 8;
+    const tieneInstagram = config?.instagram && config.instagram.trim() !== '';
+    const tieneFacebook = config?.facebook && config.facebook.trim() !== '';
+    
+    const tieneRedes = tieneWhatsApp || tieneInstagram || tieneFacebook;
 
     return (
         <div 
@@ -42,7 +114,6 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                     alt="Fondo de salón" 
                     className="w-full h-full object-cover"
                 />
-                {/* Overlay oscuro para mejorar legibilidad */}
                 <div className="absolute inset-0 bg-black/40"></div>
             </div>
 
@@ -92,6 +163,53 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                     {config?.mensaje_bienvenida || '¡Bienvenida a nuestro salón!'}
                 </p>
 
+                {/* ===== BOTONES DE REDES SOCIALES ===== */}
+                {tieneRedes && (
+                    <div className="flex justify-center gap-4 pt-4">
+                        {/* WhatsApp */}
+                        {tieneWhatsApp && (
+                            <button
+                                onClick={abrirWhatsApp}
+                                className="w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center hover:scale-110 transition-all transform hover:shadow-xl border-2 border-white/50 group relative"
+                                title="Contactar por WhatsApp"
+                            >
+                                <i className="icon-message-circle text-white text-2xl"></i>
+                                <span className="absolute -top-8 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                                    WhatsApp
+                                </span>
+                            </button>
+                        )}
+                        
+                        {/* Instagram */}
+                        {tieneInstagram && (
+                            <button
+                                onClick={abrirInstagram}
+                                className="w-14 h-14 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 rounded-full flex items-center justify-center hover:scale-110 transition-all transform hover:shadow-xl border-2 border-white/50 group relative"
+                                title="Instagram"
+                            >
+                                <i className="icon-instagram text-white text-2xl"></i>
+                                <span className="absolute -top-8 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                                    Instagram
+                                </span>
+                            </button>
+                        )}
+                        
+                        {/* Facebook */}
+                        {tieneFacebook && (
+                            <button
+                                onClick={abrirFacebook}
+                                className="w-14 h-14 bg-[#1877F2] rounded-full flex items-center justify-center hover:scale-110 transition-all transform hover:shadow-xl border-2 border-white/50 group relative"
+                                title="Facebook"
+                            >
+                                <i className="icon-facebook text-white text-2xl"></i>
+                                <span className="absolute -top-8 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                                    Facebook
+                                </span>
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 <div className="pt-6">
                     <button 
                         onClick={onStart}
@@ -105,11 +223,18 @@ function WelcomeScreen({ onStart, onGoBack, cliente, userRol }) {
                         <span>✨</span>
                     </button>
                 </div>
+
+                {/* Horario de atención si está configurado */}
+                {config?.horario_atencion && (
+                    <div className="text-sm text-white/80 bg-black/20 p-3 rounded-lg mt-4">
+                        <span className="font-semibold">🕐 Horario:</span> {config.horario_atencion}
+                    </div>
+                )}
             </div>
 
-            {/* Stickers flotantes decorativos (opcional) */}
-            <div className="absolute bottom-4 left-4 text-4xl opacity-30 rotate-12">💅</div>
-            <div className="absolute top-4 right-4 text-4xl opacity-30 -rotate-12">🌸</div>
+            {/* Stickers flotantes decorativos */}
+            <div className="absolute bottom-4 left-4 text-4xl opacity-30 rotate-12 select-none">💅</div>
+            <div className="absolute top-4 right-4 text-4xl opacity-30 -rotate-12 select-none">🌸</div>
         </div>
     );
 }

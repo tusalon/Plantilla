@@ -1,5 +1,4 @@
-// components/ClientAuthScreen.js - VERSIÓN CON REGISTRO AUTOMÁTICO
-// Los clientes se registran solos al ingresar sus datos
+// components/ClientAuthScreen.js - VERSIÓN COMPLETA CORREGIDA
 
 function ClientAuthScreen({ onAccessGranted, onGoBack }) {
     const [config, setConfig] = React.useState(null);
@@ -7,11 +6,17 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
     const [imagenCargada, setImagenCargada] = React.useState(false);
     const [nombre, setNombre] = React.useState('');
     const [whatsapp, setWhatsapp] = React.useState('');
-    const [procesando, setProcesando] = React.useState(false);
+    const [solicitudEnviada, setSolicitudEnviada] = React.useState(false);
     const [error, setError] = React.useState('');
-    const [modoRegistro, setModoRegistro] = React.useState('ingreso'); // 'ingreso' o 'registro'
+    const [clienteAutorizado, setClienteAutorizado] = React.useState(null);
+    const [verificando, setVerificando] = React.useState(false);
+    const [yaTieneSolicitud, setYaTieneSolicitud] = React.useState(false);
+    const [estadoRechazado, setEstadoRechazado] = React.useState(false);
+    const [esProfesional, setEsProfesional] = React.useState(false);
+    const [profesionalInfo, setProfesionalInfo] = React.useState(null);
+    const [esAdmin, setEsAdmin] = React.useState(false);
 
-    // Cargar configuración del negocio
+    // Cargar configuración del negocio y la imagen
     React.useEffect(() => {
         const cargarDatos = async () => {
             const configData = await window.cargarConfiguracionNegocio();
@@ -20,85 +25,169 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
         };
         cargarDatos();
 
-        // Precargar imagen de fondo
+        // Precargar la imagen de fondo
         const img = new Image();
         img.src = 'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop';
         img.onload = () => setImagenCargada(true);
+        img.onerror = () => setImagenCargada(true);
     }, []);
 
-    // Verificar el número mientras escribe
-    const handleWhatsappChange = async (e) => {
-        const value = e.target.value.replace(/\D/g, '');
-        setWhatsapp(value);
-        setError('');
+    const verificarNumero = async (numero) => {
+        if (numero.length < 8) {
+            setClienteAutorizado(null);
+            setYaTieneSolicitud(false);
+            setEstadoRechazado(false);
+            setEsProfesional(false);
+            setProfesionalInfo(null);
+            setEsAdmin(false);
+            setError('');
+            return;
+        }
         
-        // Si tiene 8 dígitos, verificar si existe
-        if (value.length === 8) {
-            setProcesando(true);
-            try {
-                const numeroCompleto = `53${value}`;
-                const cliente = await window.verificarAccesoCliente(numeroCompleto);
+        setVerificando(true);
+        
+        const numeroLimpio = numero.replace(/\D/g, '');
+        const numeroCompleto = `53${numeroLimpio}`;
+        
+        try {
+            // 🔥 VERIFICAR SI ES ADMIN (DUEÑO)
+            if (numeroLimpio === config?.telefono?.replace(/\D/g, '')) {
+                console.log('👑 Número de administradora detectado');
                 
-                if (cliente) {
-                    setModoRegistro('ingreso');
-                    setNombre(cliente.nombre || '');
+                // Verificar si ya tiene sesión activa
+                const loginTime = localStorage.getItem('adminLoginTime');
+                const tieneSesion = loginTime && (Date.now() - parseInt(loginTime)) < 8 * 60 * 60 * 1000;
+                
+                if (tieneSesion) {
+                    // Si ya tiene sesión, va directo al panel
+                    window.location.href = 'admin.html';
                 } else {
-                    setModoRegistro('registro');
+                    // Si no, va al login
+                    window.location.href = 'admin-login.html';
                 }
-            } catch (err) {
-                console.error('Error verificando:', err);
-            } finally {
-                setProcesando(false);
+                return;
             }
+            
+            // Verificar si es PROFESIONAL
+            if (window.verificarProfesionalPorTelefono) {
+                const profesional = await window.verificarProfesionalPorTelefono(numeroLimpio);
+                if (profesional) {
+                    setEsProfesional(true);
+                    setProfesionalInfo(profesional);
+                    setEsAdmin(false);
+                    setClienteAutorizado(null);
+                    setError('👩‍🎨 Acceso como profesional detectado');
+                    setVerificando(false);
+                    return;
+                }
+            }
+            
+            // Verificar si es CLIENTE AUTORIZADO
+            const existe = await window.verificarAccesoCliente(numeroCompleto);
+            
+            if (existe) {
+                setClienteAutorizado(existe);
+                setYaTieneSolicitud(false);
+                setEstadoRechazado(false);
+                setEsProfesional(false);
+                setEsAdmin(false);
+                setError('');
+            } else {
+                setClienteAutorizado(null);
+                
+                if (window.obtenerEstadoSolicitud) {
+                    const estado = await window.obtenerEstadoSolicitud(numeroCompleto);
+                    
+                    if (estado && estado.existe) {
+                        if (estado.estado === 'pendiente') {
+                            setYaTieneSolicitud(true);
+                            setEstadoRechazado(false);
+                            setError('Ya tenés una solicitud pendiente.');
+                        } 
+                        else if (estado.estado === 'rechazado') {
+                            setYaTieneSolicitud(false);
+                            setEstadoRechazado(true);
+                            setError('Tu solicitud anterior fue rechazada.');
+                        }
+                        else {
+                            setYaTieneSolicitud(true);
+                            setEstadoRechazado(false);
+                            setError('Este número ya fue registrado.');
+                        }
+                    } else {
+                        setYaTieneSolicitud(false);
+                        setEstadoRechazado(false);
+                        setError('');
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error verificando:', err);
+        } finally {
+            setVerificando(false);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        if (!nombre.trim()) {
-            setError('Ingresá tu nombre');
+        if (!nombre.trim() || !whatsapp.trim()) {
+            setError('Completá todos los campos');
             return;
         }
         
-        if (whatsapp.length !== 8) {
-            setError('El número debe tener 8 dígitos');
+        if (esAdmin || esProfesional) {
             return;
         }
         
-        setProcesando(true);
-        setError('');
+        setVerificando(true);
         
-        const numeroCompleto = `53${whatsapp}`;
+        const numeroLimpio = whatsapp.replace(/\D/g, '');
+        const numeroCompleto = `53${numeroLimpio}`;
         
         try {
-            // Verificar una última vez si existe
-            let cliente = await window.verificarAccesoCliente(numeroCompleto);
+            const autorizado = await window.verificarAccesoCliente(numeroCompleto);
             
-            if (cliente) {
-                // Cliente existe, actualizar nombre si cambió
-                if (cliente.nombre !== nombre) {
-                    await window.actualizarNombreCliente(numeroCompleto, nombre);
-                    cliente.nombre = nombre;
-                }
-                console.log('✅ Cliente existente, accediendo...');
-            } else {
-                // Cliente no existe, crearlo
-                cliente = await window.crearCliente(nombre, numeroCompleto);
-                if (!cliente) {
-                    throw new Error('No se pudo crear el cliente');
-                }
-                console.log('✅ Cliente nuevo creado, accediendo...');
+            if (autorizado) {
+                onAccessGranted(autorizado.nombre, numeroCompleto);
+                return;
             }
             
-            // Acceder al sistema
-            onAccessGranted(cliente.nombre || nombre, numeroCompleto);
+            const agregado = await window.agregarClientePendiente(nombre, numeroCompleto);
             
+            if (agregado) {
+                setSolicitudEnviada(true);
+                setError('');
+                console.log('✅ Solicitud enviada');
+            }
         } catch (err) {
             console.error('Error en submit:', err);
-            setError('Error al procesar. Intentá de nuevo.');
+            setError('Error en el sistema. Intentá más tarde.');
         } finally {
-            setProcesando(false);
+            setVerificando(false);
+        }
+    };
+
+    // 🔥 FUNCIÓN CORREGIDA - AHORA GUARDA NEGOCIO_ID
+    const handleAccesoDirecto = () => {
+        if (clienteAutorizado) {
+            const numeroLimpio = whatsapp.replace(/\D/g, '');
+            const numeroCompleto = `53${numeroLimpio}`;
+            
+            // 🔥 GUARDAR NEGOCIO_ID PARA QUE FUNCIONE EN IPHONE
+            const negocioId = '5e710464-de34-45ae-9197-cd6eeb748ca0';
+            localStorage.setItem('negocioId', negocioId);
+            
+            // También guardar nombre y color para el header
+            if (config) {
+                localStorage.setItem('negocioNombre', config.nombre);
+                localStorage.setItem('colorPrimario', config.color_primario);
+                localStorage.setItem('colorSecundario', config.color_secundario);
+            }
+            
+            console.log('✅ negocioId guardado en localStorage:', negocioId);
+            
+            onAccessGranted(clienteAutorizado.nombre, numeroCompleto);
         }
     };
 
@@ -110,12 +199,79 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
         );
     }
 
+    const colorPrimario = config?.color_primario || '#ec4899';
+    const colorSecundario = config?.color_secundario || '#f9a8d4';
     const nombreNegocio = config?.nombre || 'Mi Salón';
     const telefonoDuenno = config?.telefono || '53357234';
     const logoUrl = config?.logo_url;
     const sticker = config?.especialidad?.toLowerCase().includes('uñas') ? '💅' : 
                     config?.especialidad?.toLowerCase().includes('pelo') ? '💇‍♀️' : 
                     config?.especialidad?.toLowerCase().includes('belleza') ? '🌸' : '💖';
+
+    if (solicitudEnviada) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center p-6 animate-fade-in relative overflow-hidden">
+                {/* Imagen de fondo */}
+                <div className="absolute inset-0 z-0">
+                    <img 
+                        src="https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=2071&auto=format&fit=crop" 
+                        alt="Fondo de salón" 
+                        className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40"></div>
+                </div>
+
+                {/* Botón volver */}
+                {onGoBack && (
+                    <button
+                        onClick={onGoBack}
+                        className="absolute top-4 left-4 z-20 w-10 h-10 bg-pink-500/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-pink-600 transition-colors border border-pink-300"
+                        title="Volver"
+                    >
+                        <i className="icon-arrow-left text-white text-xl"></i>
+                    </button>
+                )}
+
+                <div className="relative z-10 bg-white/20 backdrop-blur-md p-8 rounded-2xl shadow-2xl max-w-md border border-pink-300/50">
+                    <div className="w-20 h-20 bg-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl ring-4 ring-pink-300/50">
+                        <i className="icon-check text-4xl text-white"></i>
+                    </div>
+                    
+                    <h2 className="text-2xl font-bold text-white mb-3 text-center">✨ ¡Solicitud Enviada! ✨</h2>
+                    
+                    <div className="bg-black/40 backdrop-blur-sm p-6 rounded-xl border border-pink-300/30">
+                        <p className="text-white mb-4 text-center">
+                            Gracias por querer ser parte de <span className="font-bold text-pink-300">{nombreNegocio}</span>
+                        </p>
+                        
+                        <div className="bg-pink-500/20 p-4 rounded-xl text-left space-y-2 mb-4 border border-pink-300/30">
+                            <p className="text-sm text-white">
+                                <span className="font-semibold text-pink-300">📱 Tu número:</span> +{whatsapp}
+                            </p>
+                            <p className="text-sm text-white">
+                                <span className="font-semibold text-pink-300">👤 Nombre:</span> {nombre}
+                            </p>
+                        </div>
+                        
+                        <p className="text-white/80 text-sm text-center">
+                            La administradora revisará tu solicitud y te contactará por WhatsApp.
+                        </p>
+                    </div>
+                    
+                    <div className="text-sm text-white/60 text-center mt-4">
+                        <p>Contacto:</p>
+                        <a 
+                            href={`https://wa.me/${telefonoDuenno}`} 
+                            target="_blank" 
+                            className="text-pink-300 font-medium inline-flex items-center gap-1 mt-2 hover:text-pink-200 transition-colors"
+                        >
+                            💬 +{telefonoDuenno}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
@@ -134,6 +290,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                 <button
                     onClick={onGoBack}
                     className="absolute top-4 left-4 z-20 w-10 h-10 bg-pink-500/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-pink-600 transition-colors border border-pink-300"
+                    title="Volver"
                 >
                     <i className="icon-arrow-left text-white text-xl"></i>
                 </button>
@@ -141,7 +298,7 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
 
             <div className="relative z-10 max-w-md w-full mx-auto">
                 <div className="bg-white/20 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-pink-300/50">
-                    {/* Logo */}
+                    {/* Logo o sticker */}
                     <div className="text-center mb-6">
                         {logoUrl ? (
                             <img 
@@ -155,22 +312,14 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                             </div>
                         )}
                         <h1 className="text-3xl font-bold text-white mt-4">{nombreNegocio}</h1>
-                        <p className="text-pink-300 mt-1">🌸 Acceso inmediato sin esperas 🌸</p>
+                        <p className="text-pink-300 mt-1">🌸 Espacio de belleza y cuidado 🌸</p>
                     </div>
 
-                    {/* Indicador de modo */}
-                    <div className="mb-4 text-center">
-                        {modoRegistro === 'ingreso' && whatsapp.length === 8 && (
-                            <div className="bg-green-500/30 text-green-300 p-2 rounded-lg text-sm border border-green-500/30">
-                                ✅ ¡Bienvenida de vuelta! Completá tus datos
-                            </div>
-                        )}
-                        {modoRegistro === 'registro' && whatsapp.length === 8 && (
-                            <div className="bg-pink-500/30 text-pink-300 p-2 rounded-lg text-sm border border-pink-500/30">
-                                ✨ Primera vez por aquí? Completá tu registro
-                            </div>
-                        )}
-                    </div>
+                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center justify-center gap-2 bg-pink-500/30 p-3 rounded-lg">
+                        <span>💖</span>
+                        Ingresá con tu número
+                        <span>💖</span>
+                    </h2>
                     
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Campo de nombre */}
@@ -182,10 +331,11 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                 type="text"
                                 value={nombre}
                                 onChange={(e) => setNombre(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border border-pink-300/30 bg-white/10 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition"
+                                className={`w-full px-4 py-3 rounded-lg border border-pink-300/30 bg-white/10 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition ${
+                                    esAdmin || esProfesional ? 'opacity-60 cursor-not-allowed' : ''
+                                }`}
                                 placeholder="Ej: María Pérez"
-                                disabled={procesando}
-                                required
+                                disabled={esAdmin || esProfesional}
                             />
                         </div>
 
@@ -201,62 +351,162 @@ function ClientAuthScreen({ onAccessGranted, onGoBack }) {
                                 <input
                                     type="tel"
                                     value={whatsapp}
-                                    onChange={handleWhatsappChange}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, '');
+                                        setWhatsapp(value);
+                                        verificarNumero(value);
+                                    }}
                                     className="w-full px-4 py-3 rounded-r-lg border border-pink-300/30 bg-white/10 text-white placeholder-pink-200/70 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition"
                                     placeholder="51234567"
-                                    maxLength="8"
-                                    disabled={procesando}
                                     required
                                 />
                             </div>
                             <p className="text-xs text-pink-300/70 mt-1">
-                                Ingresá tu número de WhatsApp (8 dígitos)
+                                Ingresá tu número de WhatsApp (8 dígitos después del +53)
                             </p>
                         </div>
 
-                        {/* Indicador de procesando */}
-                        {procesando && (
+                        {/* Indicador de verificación */}
+                        {verificando && (
                             <div className="text-pink-300 text-sm bg-pink-500/20 p-2 rounded-lg flex items-center gap-2 border border-pink-300/30">
                                 <div className="animate-spin h-4 w-4 border-2 border-pink-300 border-t-transparent rounded-full"></div>
-                                {whatsapp.length === 8 ? 'Verificando...' : 'Procesando...'}
+                                Verificando...
                             </div>
                         )}
 
-                        {/* Mensaje de error */}
-                        {error && (
-                            <div className="bg-red-500/20 text-red-300 text-sm p-3 rounded-lg flex items-start gap-2 border border-red-500/30">
-                                <i className="icon-triangle-alert mt-0.5"></i>
+                        {/* Mensajes según el rol detectado */}
+                        {esAdmin && !verificando && (
+                            <div className="bg-pink-500/30 border border-pink-300/50 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+                                        A
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-white font-bold text-xl">
+                                            ¡Bienvenida Administradora!
+                                        </p>
+                                        <p className="text-pink-200 text-sm">
+                                            Hacé clic en el botón de abajo para acceder al panel.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {esProfesional && profesionalInfo && !verificando && (
+                            <div className="bg-pink-500/30 border border-pink-300/50 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+                                        P
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-white font-bold text-xl">
+                                            ¡Hola {profesionalInfo.nombre}!
+                                        </p>
+                                        <p className="text-pink-200 text-sm">
+                                            Hacé clic en el botón de abajo para acceder a tu panel.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {clienteAutorizado && !verificando && !esAdmin && !esProfesional && (
+                            <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+                                        C
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-green-400 font-bold text-xl">
+                                            ¡Hola {clienteAutorizado.nombre}!
+                                        </p>
+                                        <p className="text-green-400/80 text-sm">
+                                            Ya tenés acceso para reservar turnos.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Mensajes de error */}
+                        {error && !esAdmin && !esProfesional && (
+                            <div className={`text-sm p-3 rounded-lg flex items-start gap-2 ${
+                                estadoRechazado 
+                                    ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' 
+                                    : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                            }`}>
+                                <i className={`${estadoRechazado ? 'icon-alert-circle' : 'icon-triangle-alert'} mt-0.5`}></i>
                                 <span>{error}</span>
                             </div>
                         )}
 
-                        {/* Botón de acción */}
-                        <button
-                            type="submit"
-                            disabled={procesando || whatsapp.length !== 8}
-                            className="w-full bg-pink-500 text-white py-4 rounded-xl font-bold hover:bg-pink-600 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2 shadow-lg text-lg border-2 border-pink-300"
-                        >
-                            <span className="text-xl">💅</span>
-                            {procesando ? 'Procesando...' : 'Ingresar'}
-                            <span className="text-xl">✨</span>
-                        </button>
+                        {/* Botones de acción */}
+                        <div className="space-y-3 pt-2">
+                            {esAdmin && !verificando && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        localStorage.setItem('adminAuth', 'true');
+                                        localStorage.setItem('adminUser', 'Administradora');
+                                        localStorage.setItem('adminLoginTime', Date.now());
+                                        window.location.href = 'admin.html';
+                                    }}
+                                    className="w-full bg-white text-pink-600 py-4 rounded-xl font-bold hover:bg-pink-50 transition transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg text-lg border-2 border-pink-300"
+                                >
+                                    <span className="text-xl">⚡</span>
+                                    Ingresar como Administradora
+                                </button>
+                            )}
+
+                            {esProfesional && profesionalInfo && !verificando && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        localStorage.setItem('profesionalAuth', JSON.stringify({
+                                            id: profesionalInfo.id,
+                                            nombre: profesionalInfo.nombre,
+                                            telefono: profesionalInfo.telefono,
+                                            nivel: profesionalInfo.nivel || 1
+                                        }));
+                                        window.location.href = 'admin.html';
+                                    }}
+                                    className="w-full bg-white text-pink-600 py-4 rounded-xl font-bold hover:bg-pink-50 transition transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg text-lg border-2 border-pink-300"
+                                >
+                                    <span className="text-xl">✂️</span>
+                                    Ingresar como Profesional
+                                </button>
+                            )}
+
+                            {clienteAutorizado && !verificando && !esAdmin && !esProfesional && (
+                                <button
+                                    type="button"
+                                    onClick={handleAccesoDirecto}
+                                    className="w-full bg-white text-pink-600 py-4 rounded-xl font-bold hover:bg-pink-50 transition transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg text-lg border-2 border-pink-300"
+                                >
+                                    <span className="text-xl">📱</span>
+                                    Ingresar como Cliente
+                                </button>
+                            )}
+
+                            {!clienteAutorizado && !esAdmin && !esProfesional && !verificando && (
+                                <button
+                                    type="submit"
+                                    disabled={verificando || (yaTieneSolicitud && !estadoRechazado)}
+                                    className="w-full bg-pink-500 text-white py-4 rounded-xl font-bold hover:bg-pink-600 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg text-lg border-2 border-pink-300"
+                                >
+                                    <span className="text-xl">💅</span>
+                                    {verificando ? 'Verificando...' : 'Solicitar Acceso como Cliente'}
+                                    <span className="text-xl">✨</span>
+                                </button>
+                            )}
+                        </div>
                     </form>
 
-                    {/* Contacto */}
-                    <div className="text-sm text-white/60 text-center mt-4">
-                        <p>¿Problemas? Contactanos al</p>
-                        <a 
-                            href={`https://wa.me/${telefonoDuenno}`} 
-                            target="_blank" 
-                            className="text-pink-300 font-medium inline-flex items-center gap-1 mt-2 hover:text-pink-200 transition-colors"
-                        >
-                            💬 +{telefonoDuenno}
-                        </a>
-                    </div>
-
-                    {/* Stickers decorativos */}
+                    {/* Stickers decorativos flotantes */}
                     <div className="absolute -bottom-6 -right-6 text-7xl opacity-20 rotate-12 select-none">💇‍♀️</div>
                     <div className="absolute -top-6 -left-6 text-7xl opacity-20 -rotate-12 select-none">💅</div>
+                    <div className="absolute top-1/2 -translate-y-1/2 -right-8 text-5xl opacity-10 select-none">🌸</div>
                 </div>
             </div>
         </div>

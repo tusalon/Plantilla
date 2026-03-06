@@ -1,53 +1,46 @@
-// utils/config-negocio.js - VERSIÓN CON ID FIJO POR REPOSITORIO
+// utils/config-negocio.js - VERSIÓN MULTI-TENANT
 
 console.log('🏢 config-negocio.js cargado');
 
 // ============================================
-// 🔥 ÚNICA LÍNEA QUE CAMBIA POR CLIENTE
+// 🔥 CONFIGURACIÓN POR CLIENTE
 // ============================================
-// ⚠️ IMPORTANTE: Cambiar este ID para cada repositorio cliente
+// ⚠️ IMPORTANTE: Cambiá este ID por el de cada cliente
 const NEGOCIO_ID_POR_DEFECTO = '5e710464-de34-45ae-9197-cd6eeb748ca0'; // ID de BennetSalón
-// ============================================
 
-// Cache de configuración
+// Cache de configuración (para evitar llamadas innecesarias)
 let configCache = null;
 let ultimaActualizacion = 0;
 const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos
 
 /**
- * Obtiene el negocio_id - PRIORIDAD: localStorage > ID fijo
- * Esta función SIEMPRE devuelve un ID válido
+ * Obtiene el negocio_id del localStorage o usa el ID por defecto
  */
-function getNegocioIdFromConfig() {
-    // 1. Si hay sesión de admin logueado, usar ese
+function getNegocioId() {
+    // 1. Prioridad: lo que haya en localStorage (cuando el admin se loguea)
     const localId = localStorage.getItem('negocioId');
     if (localId) {
-        console.log('📌 Usando ID de localStorage:', localId);
+        console.log('📌 Usando negocioId de localStorage:', localId);
         return localId;
     }
     
-    // 2. Si no, usar el ID fijo del código
-    console.log('📌 Usando ID fijo del código:', NEGOCIO_ID_POR_DEFECTO);
+    // 2. Si no, usar el ID por defecto quemado en el código
+    console.log('📌 Usando negocioId por defecto (quemado en código):', NEGOCIO_ID_POR_DEFECTO);
     return NEGOCIO_ID_POR_DEFECTO;
 }
 
-// Hacer la función global con nombre ÚNICO
-window.getNegocioIdFromConfig = getNegocioIdFromConfig;
-// También mantener el nombre anterior para compatibilidad
-window.getNegocioId = getNegocioIdFromConfig;
-
 /**
  * Carga la configuración del negocio desde Supabase
+ * @param {boolean} forceRefresh - Si es true, ignora el caché
  */
 window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
-    const negocioId = getNegocioIdFromConfig();
-    
+    const negocioId = getNegocioId();
     if (!negocioId) {
         console.error('❌ No hay negocioId disponible');
         return null;
     }
 
-    // Usar caché si no se fuerza refresco
+    // Usar caché si no se fuerza refresco y tenemos datos recientes
     if (!forceRefresh && configCache && (Date.now() - ultimaActualizacion) < CACHE_DURATION) {
         console.log('📦 Usando cache de configuración');
         return configCache;
@@ -59,11 +52,13 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
         
         const url = `${window.SUPABASE_URL}/rest/v1/negocios?id=eq.${negocioId}&select=*`;
         
+        console.log('📡 URL completa:', url);
+        
         const response = await fetch(url, {
             headers: {
                 'apikey': window.SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${window.SUPABASE_ANON_KEY}`,
-                'Cache-Control': 'no-cache'
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
             },
             cache: 'no-store'
         });
@@ -76,26 +71,25 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
 
         const data = await response.json();
         
-        // Guardar en cache
+        // GUARDAR EN CACHE
         configCache = data[0] || null;
         ultimaActualizacion = Date.now();
         
         if (configCache) {
-            console.log('✅ Configuración cargada:');
+            console.log('✅ Configuración cargada y cacheada:');
             console.log('   - Nombre:', configCache.nombre);
             console.log('   - Teléfono:', configCache.telefono);
             console.log('   - NTFY Topic:', configCache.ntfy_topic);
+            console.log('   - Logo:', configCache.logo_url);
+            
+            // Si el ID de localStorage es diferente al que usamos, actualizamos
+            const localId = localStorage.getItem('negocioId');
+            if (!localId && negocioId === NEGOCIO_ID_POR_DEFECTO) {
+                console.log('💾 Guardando ID por defecto en localStorage para futuras sesiones');
+                localStorage.setItem('negocioId', negocioId);
+            }
         } else {
             console.log('⚠️ No se encontró configuración para el negocio');
-            
-            // Crear configuración por defecto si no existe
-            console.log('🔄 Creando configuración por defecto...');
-            configCache = {
-                id: negocioId,
-                nombre: 'BennetSalón',
-                telefono: '54438629',
-                configurado: true
-            };
         }
         
         return configCache;
@@ -110,7 +104,7 @@ window.cargarConfiguracionNegocio = async function(forceRefresh = false) {
  */
 window.getNombreNegocio = async function() {
     const config = await window.cargarConfiguracionNegocio();
-    return config?.nombre || 'BennetSalón';
+    return config?.nombre || 'Mi Salón';
 };
 
 /**
@@ -118,15 +112,7 @@ window.getNombreNegocio = async function() {
  */
 window.getTelefonoDuenno = async function() {
     const config = await window.cargarConfiguracionNegocio();
-    return config?.telefono || '54438629';
-};
-
-/**
- * Obtiene el tópico de ntfy para notificaciones
- */
-window.getNtfyTopic = async function() {
-    const config = await window.cargarConfiguracionNegocio();
-    return config?.ntfy_topic || 'bennetsalon-89d702';
+    return config?.telefono || '53357234';
 };
 
 /**
@@ -146,20 +132,26 @@ window.getColorSecundario = async function() {
 };
 
 /**
+ * Obtiene el tópico de ntfy para notificaciones
+ */
+window.getNtfyTopic = async function() {
+    const config = await window.cargarConfiguracionNegocio();
+    return config?.ntfy_topic || 'lag-barberia';
+};
+
+/**
  * Verifica si el negocio ya está configurado
  */
 window.negocioConfigurado = async function() {
     const config = await window.cargarConfiguracionNegocio();
-    return config?.configurado || true;
+    return config?.configurado || false;
 };
 
 // Precargar configuración al inicio
 setTimeout(async () => {
-    console.log('🔄 Precargando configuración con ID fijo...');
-    const config = await window.cargarConfiguracionNegocio();
-    if (config) {
-        console.log('✅ Configuración precargada:', config.nombre);
-    }
+    console.log('🔄 Precargando configuración automática...');
+    await window.cargarConfiguracionNegocio();
 }, 500);
 
-console.log('✅ config-negocio.js listo - ID fijo:', NEGOCIO_ID_POR_DEFECTO);
+console.log('✅ config-negocio.js listo (modo multi-tenant)');
+console.log('🏷️  ID por defecto configurado:', NEGOCIO_ID_POR_DEFECTO);
